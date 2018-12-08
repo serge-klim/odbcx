@@ -1,0 +1,70 @@
+environment:
+  matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    BOOST_VER: x64-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.0
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
+    VCPLATFORM: amd64_x86
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    BOOST_VER: x32-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib32-msvc-14.0
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
+    VCPLATFORM: x86
+
+  # - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  #   BOOST_VER: x64-1.67
+  #   BOOST_ROOT: C:\Libraries\boost_1_67_0
+  #   BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
+  #   ADDRESS_MODEL: 64
+  #   VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
+  #   VCPLATFORM:
+
+  # - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  #   BOOST_VER: x32-1.67
+  #   BOOST_ROOT: C:\Libraries\boost_1_67_0
+  #   BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
+  #   ADDRESS_MODEL: 32
+  #   VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
+  #   VCPLATFORM:
+
+services:
+  - mssql2008r2sp2
+
+install:
+  - ps: |
+      [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+      [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.SqlWmiManagement") | Out-Null
+
+      $computerName = $env:COMPUTERNAME
+      $instanceName = 'SQL2008R2SP2'
+      $smo = 'Microsoft.SqlServer.Management.Smo.'
+      $wmi = New-Object ($smo + 'Wmi.ManagedComputer')
+      
+      # Enable TCP/IP
+      $uri = "ManagedComputer[@Name='$computerName']/ ServerInstance[@Name='$instancename']/ServerProtocol[@Name='Tcp']"
+      $Tcp = $wmi.GetSmoObject($uri)
+      foreach ($ipAddress in $Tcp.IPAddresses)
+      {
+          $ipAddress.IPAddressProperties["TcpDynamicPorts"].Value = ""
+          $ipAddress.IPAddressProperties["TcpPort"].Value = "1433"
+      }
+      $Tcp.IsEnabled = $true
+      $Tcp.alter()
+
+      Set-Service SQLBrowser -StartupType Manual      
+      Start-Service SQLBrowser
+      Start-Service "MSSQL`$$instancename"
+
+  - sqlcmd -S (local) -U sa -P Password12! -i test\sql\mssql.sql -d "master"
+  - call "%VCVARS%" %VCPLATFORM%
+  - cd %BOOST_ROOT%
+  - bootstrap.bat
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/project-config.jam > project-config.jam
+build_script:
+  - ls %BOOST_LIBS%
