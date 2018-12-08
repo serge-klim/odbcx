@@ -1,0 +1,26 @@
+import os ;
+using testing ;
+
+project
+    : requirements
+      <library>/odbcx//odbcx/<link>static
+      <library>/user-config//odbc
+;
+
+
+unit-test test
+    :  tests.cpp
+	   bindings_test.cpp
+	   select_statments_test.cpp
+	   simple_queries_test.cpp
+	   transactions_test.cpp
+ 	   ttraits_tests.cpp
+ 	:
+      <library>/boost//unit_test_framework/<link>static
+      <library>/boost//program_options/<link>static
+      <toolset>msvc:<runtime-link>static
+    ;
+
+compile-fail fail_in_test.cpp ;
+compile-fail fail_in_1_test.cpp ;
+compile-fail fail_select_stmt1_test.cpp ;

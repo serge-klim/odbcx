@@ -1,0 +1,16 @@
+
+import os ;
+if [ os.name ] = NT
+{
+   lib psapi : : <target-os>windows ;
+   lib advapi32 : : <target-os>windows ;
+   lib iphlpapi  : : <target-os>windows ;
+   lib ws2_32 : : <target-os>windows ;
+}
+
+lib odbcx
+    : utility.cpp
+    : <library>/boost///headers
+    : # no default build
+    : <include>..
+    ;
