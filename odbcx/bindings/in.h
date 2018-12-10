@@ -92,31 +92,31 @@ struct Bind<std::vector<T>, boost::mpl::bool_<sizeof(T) == sizeof(std::uint8_t)>
 //data at exec
 //https://docs.microsoft.com/en-us/sql/relational-databases/native-client-odbc-table-valued-parameters/sending-data-as-a-table-valued-parameter-using-data-at-execution-odbc?view=sql-server-2017
 
+template<typename ...Params>
+struct InputParametersVerify;
+
+template<typename T, typename ...Params>
+struct InputParametersVerify<T const&, Params...> : InputParametersVerify<Params...> {};
+
+template<typename T, typename ...Params>
+struct InputParametersVerify<T&, Params...> : InputParametersVerify<Params...> {};
+
+template<typename T, typename ...Params>
+struct InputParametersVerify<T&&, Params...> : std::false_type {};
+
+template<typename T, typename ...Params>
+struct InputParametersVerify<T, Params...> : std::false_type {};
+
+template<>
+struct InputParametersVerify<> : std::true_type {};
+
 
 struct InputParameters
 {
 	template<typename ...Params>
-	struct Check;
-
-	template<typename T, typename ...Params>
-	struct Check<T const&, Params...> : Check<Params...> {};
-
-	template<typename T, typename ...Params>
-	struct Check<T&, Params...> : Check<Params...> {};
-
-	template<typename T, typename ...Params>
-	struct Check<T&&, Params...> : std::false_type {};
-
-	template<typename T, typename ...Params>
-	struct Check<T, Params...> : std::false_type {};
-
-	template<>
-	struct Check<> : std::true_type {};
-
-	template<typename ...Params>
 	void bind(SQLLEN (&lengths)[sizeof...(Params)], handle::Stmt const& stmt, Params&& ...params) const
 	{
-		static_assert(Check<Params...>::value, "input parameter can't be temporary!");
+		static_assert(InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		bind_<0>(stmt, lengths, std::forward<Params>(params)...);
 	}
 private:

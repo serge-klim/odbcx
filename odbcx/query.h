@@ -118,7 +118,7 @@ public:
 	auto where(std::string const& condition, Params&& ...params) &&
 		-> SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::Where >
 	{
-		static_assert(details::in::InputParameters::template Check<Params...>::value, "input parameter can't be temporary!");
+		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::Where, "SQL statement can't have more than one where clauses");
 		static_assert(Clause != SelectClause::GroupBy, "where can't follow by group by clause");
 		static_assert(Clause != SelectClause::Having, "where can't follow by having clause");
@@ -131,7 +131,7 @@ public:
 	auto group_by(std::string const& condition, Params&& ...params) &&
 		->SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::GroupBy >
 	{
-		static_assert(details::in::InputParameters::template Check<Params...>::value, "input parameter can't be temporary!");
+		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::GroupBy, "SQL statement can't have more than one group by clauses");
 		static_assert(Clause != SelectClause::Having, "group by can't follow by having clause");
 		static_assert(Clause != SelectClause::OrderBy, "group by can't follow by order by clause");
@@ -143,7 +143,7 @@ public:
 	auto having(std::string const& condition, Params&& ...params) &&
 		->SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::Having >
 	{
-		static_assert(details::in::InputParameters::template Check<Params...>::value, "input parameter can't be temporary!");
+		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::Having, "SQL statement can't have more than one having clauses");
 		static_assert(Clause != SelectClause::OrderBy, "having can't follow by order by clause");
 		static_assert(!(Clause > SelectClause::OrderBy), "Oops! just wrong");
@@ -154,7 +154,7 @@ public:
 	auto order_by(std::string const& condition, Params&& ...params) &&
 		->SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::OrderBy >
 	{
-		static_assert(details::in::InputParameters::template Check<Params...>::value, "input parameter can't be temporary!");
+		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::OrderBy, "SQL statement can't have more than one order by clauses");
 		static_assert(!(Clause > SelectClause::OrderBy), "Oops! just wrong");
 		return make_result<SelectClause::OrderBy>(std::move(prev_layer_), std::move(alias_), std::move(tail_), " ORDER BY " + condition, std::move(params_), std::forward<Params>(params)...);
@@ -170,7 +170,7 @@ private:
 	static auto make_result(PrevLayer&& prev_layer, Alias&& alias, std::string&& tail, std::string&& clause, std::tuple<Params1 const&...>&& params1, Params2&& ...params2)
 		->SelectQuery < PrevLayer, decltype(std::tuple_cat(/*std::declval<InputParams>()*/std::move(params1), std::tuple<Params2 const&...>{std::forward<Params2>(params2)...})), NextLayer >
 	{
-		static_assert(details::in::InputParameters::template Check<Params2...>::value, "input parameter can't be temporary!");
+		static_assert(details::in::InputParametersVerify<Params2...>::value, "input parameter can't be temporary!");
 		return { std::move(prev_layer), std::move(alias), std::move(tail) + std::move(clause), std::tuple_cat(std::move(params1), std::tuple<Params2 const&...>{std::forward<Params2>(params2)...}) };
 	}
 

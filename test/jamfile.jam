@@ -18,7 +18,6 @@ unit-test test
  	:
       <library>/boost//unit_test_framework/<link>static
       <library>/boost//program_options/<link>static
-      <toolset>msvc:<runtime-link>static
     ;
 
 compile-fail fail_in_test.cpp ;

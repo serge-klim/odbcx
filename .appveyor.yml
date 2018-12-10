@@ -2,6 +2,25 @@ environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
 
   matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    BOOST_VER: x64-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
+    VCPLATFORM:
+    SQLSRV: MSSQL$SQL2017
+    # CODECOVE: ON
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    BOOST_VER: x32-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib32-msvc-14.1
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
+    VCPLATFORM:
+    SQLSRV: MSSQL$SQL2017
+
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
     BOOST_VER: x64-1.67
     BOOST_ROOT: C:\Libraries\boost_1_67_0
@@ -20,35 +39,31 @@ environment:
     VCPLATFORM: x86
     SQLSRV: MSSQL$SQL2008R2SP2
 
-  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    BOOST_VER: x64-1.67
-    BOOST_ROOT: C:\Libraries\boost_1_67_0
-    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
-    ADDRESS_MODEL: 64
-    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
-    VCPLATFORM:
-    SQLSRV: MSSQL$SQL2017
-
-  # - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-  #   BOOST_VER: x32-1.67
-  #   BOOST_ROOT: C:\Libraries\boost_1_67_0
-  #   BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
-  #   ADDRESS_MODEL: 32
-  #   VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
-  #   VCPLATFORM:
-  #   SQLSRV: MSSQL$SQL2017
-
-  # - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
   #   COMPILER: clang++-6.0 
   #   TOOLSET: clang
   #   CPPSTD: c++1y
-  #   BOOST_VER: 1.68.0
+  #   BOOST_VER: 1.69.0
+  #   TEST_ARGS:
+  #     -- -c 'Driver={ODBC Driver 17 for SQL Server};server=(local);database=test;UID=sa;PWD=Password12!;Mars_connection=yes;MultipleActiveResultSets=true;'
+  #   INSTALL: clang-6.0 lld-6.0 libc++-dev libc++abi-dev
 
-  # - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
   #   COMPILER: g++-6 
   #   TOOLSET: gcc-6
   #   CPPSTD: c++11
   #   BOOST_VER: 1.68.0
+  #   TEST_ARGS:
+  #     -- -c 'Driver={ODBC Driver 17 for SQL Server};server=(local);database=test;UID=sa;PWD=Password12!;Mars_connection=yes;MultipleActiveResultSets=true;'
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+    COMPILER: g++-8 
+    TOOLSET: gcc-8
+    CPPSTD: c++14
+    BOOST_VER: 1.68.0
+    INSTALL: build-essential gcc-8-multilib
+    TEST_ARGS:
+      -- -c 'Driver={ODBC Driver 17 for SQL Server};server=(local);database=test;UID=sa;PWD=Password12!;Mars_connection=yes;MultipleActiveResultSets=true;'
 
 for:
 -
@@ -63,37 +78,38 @@ for:
       - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   services:
     - mssql2017
--
-  matrix:
-    only:
-      - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-  services:
-    - mssql
+
+services:
+  - mssql
 
 install:
   - cmd: |
       call "%VCVARS%" %VCPLATFORM% 
       cd %BOOST_ROOT% 
       bootstrap.bat 
-      cd %APPVEYOR_BUILD_FOLDER% 
-      choco install opencppcoverage 
-  #- set path=C:\Program Files\OpenCppCoverage;%path% 
+  - cmd: >+
+      if not [%CODECOVE%]==[] (
+      set COVER_SRC="%APPVEYOR_BUILD_FOLDER%\odbcx" &
+      set CONFIG=codecov %CONFIG% &
+      set TESTING_LAUNCHER=trunner.cmd &
+      choco install opencppcoverage codecov &
+      curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/trunner.cmd > trunner.cmd &
+      "%BOOST_ROOT%\b2.exe" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi --with-test --with-program_options -d0 stage debug &
+      set BOOST_LIBS=%BOOST_ROOT%\stage\lib )
   - sh: |
-      # sudo apt-get update && sudo apt-get install -y clang-6.0 lld-6.0
-      sudo apt-get update && sudo apt-get install -y build-essential gcc-6 g++-6
+      alias appveyor-retry="sleep 45 &&"
+      sudo apt-get update && sudo apt-get install -y ${INSTALL}
       if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
-      ${CXX} --version
-      cd ${APPVEYOR_BUILD_FOLDER}
-  - sh: |
-      ############################################################################
-      # Install libc++ and libc++abi if needed
-      ############################################################################
-      if [[ "${CXX%%+*}" == "clang" ]]; then
-        export TRAVIS_BUILD_DIR=${APPVEYOR_BUILD_FOLDER}
-        bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/lib++.install)
-        export B2FLAGS="${B2FLAGS} cxxflags=-isystem${APPVEYOR_BUILD_FOLDER}/llvm/out/include/c++/v1 linkflags=-L${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
-        export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
-      fi
+  # - sh: |
+  #     ############################################################################
+  #     # Install libc++ and libc++abi if needed
+  #     ############################################################################
+  #     if [[ "${CXX%%+*}" == "clang" ]]; then
+  #       export TRAVIS_BUILD_DIR=${APPVEYOR_BUILD_FOLDER}
+  #       bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/lib++.install)
+  #       export B2FLAGS="${B2FLAGS} cxxflags=-isystem${APPVEYOR_BUILD_FOLDER}/llvm/out/include/c++/v1 linkflags=-L${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
+  #       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
+  #     fi
   - sh: |
       ############################################################################
       # Download boost and build boost test and program_options
@@ -102,10 +118,14 @@ install:
       bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/boost.install) toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi --layout=versioned --with-test --with-program_options -d0 stage debug
       export BOOST_ROOT=${APPVEYOR_BUILD_FOLDER}/boost_${BOOST_VER//./_}    
 
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
   - curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/project-config.jam > project-config.jam 
 build_script:
-  - sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master" 
+  - appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master" 
   - cmd: |
-      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% toolset=msvc address-model=%ADDRESS_MODEL% threading=multi -a
+      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi -a %CONFIG%
   - sh: |
-      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib debug
+      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib -sTEST_ARGS="${TEST_ARGS}" debug 
+on_success:
+  - cmd: |
+      if not [%CODECOVE%]==[] ("C:\ProgramData\chocolatey\lib\codecov\tools\codecov" -f "cobertura.xml" -t "4cd5b25e-4ca1-4bf0-ac42-92924658728a")
