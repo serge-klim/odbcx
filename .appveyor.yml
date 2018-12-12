@@ -10,7 +10,7 @@ environment:
     VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
     VCPLATFORM:
     SQLSRV: MSSQL$SQL2017
-    # CODECOVE: ON
+    CODECOVE: ON
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     BOOST_VER: x32-1.67
@@ -90,12 +90,9 @@ install:
   - cmd: >+
       if not [%CODECOVE%]==[] (
       set COVER_SRC="%APPVEYOR_BUILD_FOLDER%\odbcx" &
-      set CONFIG=codecov %CONFIG% &
-      set TESTING_LAUNCHER=trunner.cmd &
+      set CONFIG=opencppcoverage %CONFIG% &
       choco install opencppcoverage codecov &
-      curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/trunner.cmd > trunner.cmd &
-      "%BOOST_ROOT%\b2.exe" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi --with-test --with-program_options -d0 stage debug &
-      set BOOST_LIBS=%BOOST_ROOT%\stage\lib )
+      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources %APPVEYOR_BUILD_FOLDER% --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
   - sh: |
       alias appveyor-retry="sleep 45 &&"
       sudo apt-get update && sudo apt-get install -y ${INSTALL}
