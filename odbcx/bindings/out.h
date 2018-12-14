@@ -322,8 +322,11 @@ struct DynamicBind<std::basic_string<T>, boost::mpl::true_>
 
 	void copy2(SQLLEN const* row, ValueType& out) const
 	{
-		auto begin = data_cast<T>(row);
-		out.assign(begin, begin + *row);
+		if (*row != SQL_NULL_DATA)
+		{
+			auto begin = data_cast<T>(row);
+			out.assign(begin, begin + *row);
+		}
 	}
 
 	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const
@@ -349,8 +352,11 @@ struct DynamicBindVector
 
 	void copy2(SQLLEN const* row, std::vector<T>& out) const
 	{
-		auto begin = data_cast<T>(row);
-		out.assign(begin, begin + *row);
+		if (*row != SQL_NULL_DATA)
+		{
+			auto begin = data_cast<T>(row);
+			out.assign(begin, begin + *row);
+		}
 	}
 
 	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, std::vector<T>& out) const
