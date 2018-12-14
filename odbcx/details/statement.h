@@ -174,12 +174,17 @@ class DynamicallyBindableRecordset
 		DynamicallyBindableRecordset const* recorset_ = nullptr;
 	};
 public:
-//	DynamicallyBindableRecordset() = default;
+	DynamicallyBindableRecordset() = default;
 	DynamicallyBindableRecordset(Statement& statement, std::vector<char>&& buffer)
-		: statement_(statement), buffer_(std::move(buffer))	{}
+		: statement_(&statement), buffer_(std::move(buffer))	{}
+	DynamicallyBindableRecordset(DynamicallyBindableRecordset const&) = default;
+	DynamicallyBindableRecordset(DynamicallyBindableRecordset&&) = default;
+	DynamicallyBindableRecordset& operator=(DynamicallyBindableRecordset const&) = default;
+	DynamicallyBindableRecordset& operator=(DynamicallyBindableRecordset&&) = default;
+
 
 	bool empty() const { return buffer_.empty(); }
-	std::size_t size() const { assert(buffer_.size() % statement_.bindings().row_size() == 0); return buffer_.size() / statement_.bindings().row_size(); }
+	std::size_t size() const { assert(buffer_.size() % statement_->bindings().row_size() == 0); return buffer_.size() / statement_->bindings().row_size(); }
 
 	using const_iterator = Iterator;
 	const_iterator cbegin() const { return const_iterator{*this, 0 }; }
@@ -192,19 +197,19 @@ public:
 	ValueType<N> get(std::size_t n) const
 	{ 
 		assert(size() > n && "row number is out of range");
-		auto const& bindings = statement_.bindings();
+		auto const& bindings = statement_->bindings();
 		auto row = buffer_.data() + bindings.row_size() * n;
-		return bindings.template get<N>(statement_.Handle(), row);
+		return bindings.template get<N>(statement_->Handle(), row);
 	}
 	Sequence operator[](std::size_t n) const
 	{
 		assert(size() > n && "row number is out of range");
-		auto const& bindings = statement_.bindings();
+		auto const& bindings = statement_->bindings();
 		auto row = buffer_.data() + bindings.row_size() * n;
-		return bindings.value(statement_.Handle(), row);
+		return bindings.value(statement_->Handle(), row);
 	}
 private:
-	Statement& statement_;
+	Statement* statement_ = nullptr;
 	std::vector<char> buffer_;
 };
 

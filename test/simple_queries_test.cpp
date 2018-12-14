@@ -66,5 +66,20 @@ BOOST_AUTO_TEST_CASE(InputParametersTimestampTest)
 	odbcx::query(dbc, "insert into test (ts, target) values(?,?)", ts ,"timestamp");
 }
 
+BOOST_AUTO_TEST_CASE(InputParametersXTest)
+{
+	SQL_TIMESTAMP_STRUCT ts;
+	ts.year = 2018;
+	ts.month = 12;
+	ts.day = 7;
+	ts.hour = 05;
+	ts.minute = 21;
+	ts.second = 0;
+	ts.fraction = 0;
+	auto message = std::string{ "message" };
+	auto data = std::vector<std::uint8_t>(100 * 1024, 0xF);
+	odbcx::query(dbc, "insert into test (ts, target, messagetype, N, pb) values(?,?,?,?,?)", ts, "target", message, ts.day, data);
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
