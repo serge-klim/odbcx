@@ -66,13 +66,23 @@ void odbcx::v0::end_transaction(handle::Dbc const& dbc, SQLSMALLINT completionTy
 
 void odbcx::v0::begin_transaction(SQLHANDLE dbc)
 {
+	assert(autocommit_mode(dbc));
 	details::IfFailedThrow(::SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)SQL_AUTOCOMMIT_OFF, 0), dbc, SQL_HANDLE_DBC);
 }
 
 void odbcx::v0::end_transaction(SQLHANDLE dbc, SQLSMALLINT completionType /*= SQL_ROLLBACK*/)
 {
+	assert(!autocommit_mode(dbc));
 	details::IfFailedThrow(::SQLEndTran(SQL_HANDLE_DBC, dbc, completionType), dbc, SQL_HANDLE_DBC);
-	details::IfFailedThrow(::SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)SQL_AUTOCOMMIT_OFF, 0), dbc, SQL_AUTOCOMMIT_ON);
+	details::IfFailedThrow(::SQLSetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, (SQLPOINTER)SQL_AUTOCOMMIT_ON, 0), dbc, SQL_HANDLE_DBC);
+}
+
+bool odbcx::v0::autocommit_mode(handle::Dbc const& dbc) { return autocommit_mode(dbc.get()); }
+bool odbcx::v0::autocommit_mode(SQLHANDLE dbc)
+{
+	SQLULEN val = 0;
+	details::IfFailedThrow(::SQLGetConnectAttr(dbc, SQL_ATTR_AUTOCOMMIT, &val, sizeof(val), nullptr), dbc, SQL_HANDLE_DBC);
+	return val == SQL_AUTOCOMMIT_ON;
 }
 
 

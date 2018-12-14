@@ -64,6 +64,12 @@ namespace odbcx { inline namespace v0 {
             return { handle, deleter<T>{} };
         }
 
+		template<HandleType T>
+		details::Handle<T> allocate(SQLHANDLE handle)
+		{
+			return { handle, deleter<T>{} };
+		}
+
         template<HandleType T>
         details::Handle<T> allocate()
         {
@@ -119,4 +125,6 @@ namespace odbcx { inline namespace v0 {
 	void end_transaction(handle::Dbc const& dbc, SQLSMALLINT completionType = SQL_ROLLBACK);
 	void begin_transaction(SQLHANDLE dbc);
 	void end_transaction(SQLHANDLE dbc, SQLSMALLINT completionType = SQL_ROLLBACK);
+	bool autocommit_mode(handle::Dbc const& dbc);
+	bool autocommit_mode(SQLHANDLE dbc);
 }/*inline namespace v0*/} //namespace odbcx
