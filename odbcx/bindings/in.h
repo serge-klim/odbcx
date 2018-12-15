@@ -140,7 +140,7 @@ struct Bind<std::vector<T>, boost::mpl::bool_<sizeof(T) == sizeof(std::uint8_t)>
 			operator()(stmt, column, nullptr, length);
 		else
 		{
-			SQLSMALLINT sqlType = (length > BinarySizeLimit ? SQL_LONGVARBINARY : SQL_BINARY);
+			SQLSMALLINT sqlType = (std::size_t(length) > BinarySizeLimit ? SQL_LONGVARBINARY : SQL_BINARY);
 			odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_BINARY, sqlType, length, 0, const_cast<T*>(data.data()), length, &length);
 		}
 	}

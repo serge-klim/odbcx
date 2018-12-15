@@ -5,7 +5,7 @@
 #include "odbcx/bindings/out.h"
 #include "odbcx/details/statement.h"
 #include "odbcx/query.h"
-
+#include <boost/core/ignore_unused.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(BindingsTestSuite, Fixture)
 
@@ -94,6 +94,7 @@ BOOST_AUTO_TEST_CASE(BindingsTest)
 	BOOST_CHECK(!recordset.empty());
 	auto val = recordset[0];
 	auto id = recordset.get<0>(0);
+	boost::ignore_unused(id);
 	auto ts = recordset.get<1>(0);
 	auto target = recordset.get<2>(0);
 	auto message_type = recordset.get<3>(0);
@@ -124,6 +125,11 @@ BOOST_AUTO_TEST_CASE(BindingsTest)
 		auto target = recordset.get<2>(0);
 		auto message_type = recordset.get<3>(0);
 		auto pb = recordset.get<4>(0);
+		boost::ignore_unused(id);
+		boost::ignore_unused(ts);
+		boost::ignore_unused(target);
+		boost::ignore_unused(message_type);
+		boost::ignore_unused(pb);
 	}
 }
 
@@ -148,6 +154,10 @@ BOOST_AUTO_TEST_CASE(BindingsQueryTest)
 	//	BOOST_CHECK(recordset.get<3>(0).empty());
 	//}
 
+
+	boost::ignore_unused(id);
+	boost::ignore_unused(message_type);
+
 	BOOST_CHECK_EQUAL_COLLECTIONS(reinterpret_cast<char const*>(&ts), reinterpret_cast<char const*>(&ts) + sizeof(ts),
 										reinterpret_cast<char const*>(&val.ts), reinterpret_cast<char const*>(&val.ts) + sizeof(val.ts));
 
@@ -165,6 +175,11 @@ BOOST_AUTO_TEST_CASE(BindingsQueryTest)
 		auto target = recordset.get<2>(0);
 		auto message_type = recordset.get<3>(0);
 		auto pb = recordset.get<4>(0);
+		boost::ignore_unused(id);
+		boost::ignore_unused(ts);
+		boost::ignore_unused(target);
+		boost::ignore_unused(message_type);
+		boost::ignore_unused(pb);
 	}
 }
 
@@ -194,6 +209,11 @@ BOOST_AUTO_TEST_CASE(TestNoPBBindingsTest)
 	auto target1 = recordset.get<1>(0);
 	auto message_type = recordset.get<2>(0);
 	auto message_type1 = recordset.get<3>(0);
+
+	boost::ignore_unused(target);
+	boost::ignore_unused(target1);
+	boost::ignore_unused(message_type);
+	boost::ignore_unused(message_type1);
 }
 
 
@@ -218,6 +238,8 @@ BOOST_AUTO_TEST_CASE(PBHybridBindingsTest)
 	BOOST_CHECK_EQUAL_COLLECTIONS(cbegin(pb_s), cend(pb_s),
 									cbegin(pb), cend(pb));
 
+	boost::ignore_unused(target);
+	boost::ignore_unused(message_type);
 }
 
 BOOST_AUTO_TEST_CASE(PBHybridBindings1Test)

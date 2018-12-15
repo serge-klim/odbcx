@@ -244,7 +244,7 @@ std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALL
 		return {};
 
 	std::size_t total = 0;
-	if (read == SQL_NO_TOTAL || read == chunk_size)
+	if (read == SQL_NO_TOTAL || std::size_t(read) == chunk_size)
 	{
 		//well have to read it chunk by chunk:(
 		do{
