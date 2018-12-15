@@ -53,6 +53,13 @@ BOOST_AUTO_TEST_CASE(InputParametersBinTest)
 	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", "test","binary", data);
 }
 
+BOOST_AUTO_TEST_CASE(InputParametersEmptyTest)
+{
+	auto empty = std::string{};
+	auto data = std::vector<std::uint8_t>{};
+	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", empty, empty, data);
+}
+
 BOOST_AUTO_TEST_CASE(InputParametersTimestampTest)
 {
 	SQL_TIMESTAMP_STRUCT ts;

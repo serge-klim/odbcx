@@ -14,6 +14,14 @@ namespace odbcx { inline namespace v0 { namespace details { namespace in {
 
 template<typename T, typename Enabled = boost::mpl::true_> struct Bind;
 
+struct BindNull
+{
+	void operator()(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALLINT c_type, SQLSMALLINT sql_type, SQLLEN& length)
+	{
+		length = SQL_NULL_DATA;
+		odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, c_type, sql_type, 1, 0, nullptr, 0, &length);
+	}
+};
 
 template<typename T> 
 struct Bind<T, typename boost::mpl::or_<std::is_integral<T>, std::is_floating_point<T>>::type>
@@ -44,7 +52,10 @@ struct Bind<char[N], boost::mpl::true_>
 		auto end = data + N;
 		auto i = std::find(data, end, '\0');
 		length = i == end ? N : std::distance(data, i);
-		odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data), length, &length);
+		if (length == 0)
+			BindNull{}(stmt, column, SQL_C_CHAR, SQL_CHAR, length);
+		else
+			odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data), length, &length);
 	}
 };
 
@@ -54,7 +65,10 @@ struct Bind<char*, boost::mpl::true_>
 	void operator()(handle::Stmt const & stmt, SQLUSMALLINT column, const char* data, SQLLEN& length)
 	{
 		length = std::char_traits<char>::length(data);
-		call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data), length, &length);
+		if (length == 0)
+			BindNull{}(stmt, column, SQL_C_CHAR, SQL_CHAR, length);
+		else
+			call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data), length, &length);
 	}
 };
 
@@ -64,7 +78,10 @@ struct Bind<std::string, boost::mpl::true_>
 	void operator()(handle::Stmt const & stmt, SQLUSMALLINT column, std::string const &data, SQLLEN& length)
 	{
 		length = data.length();
-		odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data.data()), length, &length);
+		if (length == 0)
+			BindNull{}(stmt, column, SQL_C_CHAR, SQL_CHAR, length);
+		else
+			odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data.data()), length, &length);
 	}
 };
 
@@ -74,7 +91,10 @@ struct Bind<std::vector<char>, boost::mpl::true_>
 	void operator()(handle::Stmt const & stmt, SQLUSMALLINT column, std::string const &data, SQLLEN& length)
 	{
 		length = data.size();
-		odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data.data()), length, &length);
+		if (length == 0)
+			BindNull{}(stmt, column, SQL_C_CHAR, SQL_CHAR, length);
+		else
+			odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR, length, 0, const_cast<char*>(data.data()), length, &length);
 	}
 };
 
@@ -84,8 +104,13 @@ struct Bind<std::vector<T>, boost::mpl::bool_<sizeof(T) == sizeof(std::uint8_t)>
 	void operator()(handle::Stmt const & stmt, SQLUSMALLINT column, std::vector<T> const &data, SQLLEN& length)
 	{
 		length = data.size();
-		SQLSMALLINT sqlType = (length > BinarySizeLimit ? SQL_LONGVARBINARY : SQL_BINARY);
-		odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_BINARY, sqlType, length, 0, const_cast<T*>(data.data()), length, &length);
+		if (length == 0)
+			BindNull{}(stmt, column, SQL_C_BINARY, SQL_BINARY, length);
+		else
+		{
+			SQLSMALLINT sqlType = (length > BinarySizeLimit ? SQL_LONGVARBINARY : SQL_BINARY);
+			odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, SQL_C_BINARY, sqlType, length, 0, const_cast<T*>(data.data()), length, &length);
+		}
 	}
 };
 
