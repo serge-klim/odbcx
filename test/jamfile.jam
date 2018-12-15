@@ -16,6 +16,7 @@ unit-test test
 	   transactions_test.cpp
  	   ttraits_tests.cpp
 	   iterator_test.cpp
+	   select_optional_test.cpp
  	:
       <library>/boost//unit_test_framework/<link>static
       <library>/boost//program_options/<link>static

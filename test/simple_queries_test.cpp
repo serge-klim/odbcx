@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(SimpleQueryOneStructTest)
 {
 	auto val = odbcx::query_one<std::tuple<long, long>>(dbc, "SELECT count(id), count(id) + 100 FROM test");
 	BOOST_CHECK_EQUAL(!val, false);
-	BOOST_CHECK_EQUAL(std::get<0>(val.get()) + 100, std::get<1>(val.get()));
+	BOOST_CHECK_EQUAL(std::get<0>(val.value()) + 100, std::get<1>(val.value()));
 }
 
 BOOST_AUTO_TEST_CASE(SimpleQueryOneStructWithParamTest)
@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(SimpleQueryOneStructWithParamTest)
 	int xtra = 100;
 	auto val = odbcx::query_one<std::tuple<long, long>>(dbc, "SELECT count(id), count(id) + ? FROM test", xtra);
 	BOOST_CHECK_EQUAL(!val, false);
-	BOOST_CHECK_EQUAL(std::get<0>(val.get()) + xtra, std::get<1>(val.get()));
+	BOOST_CHECK_EQUAL(std::get<0>(val.value()) + xtra, std::get<1>(val.value()));
 }
 
 BOOST_AUTO_TEST_CASE(InputParametersSimpleTest)

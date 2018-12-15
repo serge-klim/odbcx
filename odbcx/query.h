@@ -66,17 +66,17 @@ Statement<Out> query(handle::Dbc const& dbc, std::string const& text, Params&& .
 
 template<typename Out/*typename ...Out*/, typename Handle, typename ...Params>
 auto query_one(Handle&& handle, std::string const& text, Params&& ...params)
-	-> std::enable_if_t<boost::fusion::traits::is_sequence<Out>::value, boost::optional<Out>>
+	-> std::enable_if_t<boost::fusion::traits::is_sequence<Out>::value, diversion::optional<Out>>
 {
 	return query<Out>(std::move(handle), text, std::forward<Params>(params)...).fetch_one();
 }
 
 template<typename Out/*typename ...Out*/, typename Handle, typename ...Params>
 auto query_one(Handle&& handle, std::string const& text, Params&& ...params)
-	-> std::enable_if_t<!boost::fusion::traits::is_sequence<Out>::value, boost::optional<Out>>
+	-> std::enable_if_t<!boost::fusion::traits::is_sequence<Out>::value, diversion::optional<Out>>
 {
 	auto value = query<std::tuple<Out>>(std::move(handle), text, std::forward<Params>(params)...).fetch_one();
-	return !value ? boost::none : boost::make_optional(std::get<0>(value.get()));
+	return !value ? diversion::nullopt : diversion::make_optional(std::get<0>(value.value()));
 }
 
 enum class SelectClause

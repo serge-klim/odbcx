@@ -1,5 +1,5 @@
 #pragma once
-#include "odbcx/details/diversion.hpp"
+#include "odbcx/details/diversion.h"
 #include "odbcx/utility.h"
 #include "ttraits.h"
 #include <boost/mpl/bool_fwd.hpp>

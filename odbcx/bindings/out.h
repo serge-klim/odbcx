@@ -1,5 +1,6 @@
 #pragma once
 #include "ttraits.h"
+#include "odbcx/details/diversion.h"
 #include "odbcx/utility.h"
 #include <boost/fusion/include/mpl.hpp>
 #include <boost/fusion/adapted/struct/detail/extension.hpp>
@@ -108,8 +109,8 @@ struct Bind<T, typename boost::mpl::or_<std::is_integral<T>, std::is_floating_po
 	}
 	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
 
-	void copy2(SQLLEN const* row, int& out) const {	out = SQL_NULL_DATA == *row ? 0 : *data_cast<T>(row); }
-	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, int& /*out*/) const { assert(!"unexpected call"); }
+	void copy2(SQLLEN const* row, ValueType& out) const {	out = SQL_NULL_DATA == *row ? 0 : *data_cast<T>(row); }
+	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, ValueType& /*out*/) const { assert(!"unexpected call"); }
 };
 
 template<std::size_t N>
@@ -425,9 +426,43 @@ struct DynamicBind<std::vector<T>, boost::mpl::bool_<sizeof(T) == sizeof(std::ui
 	}
 };
 
-
 template<typename T, typename U = std::size_t>
-struct DynamicallyBindable : StaticallyBindable<T>{};
+struct DynamicallyBindable : StaticallyBindable<T> {};
+
+template<typename T>
+struct DynamicBind<diversion::optional<T>, boost::mpl::bool_<DynamicallyBindable<T>::value>> : DynamicBind<T>
+{
+	using Base = DynamicBind<T>;
+	using DynamicBind<T>::dyn_column;
+
+	using ValueType = diversion::optional<typename Base::ValueType>;
+	ValueType construct(SQLLEN const* row) const
+	{
+		auto begin = data_cast<T>(row);
+		return begin == SQL_NULL_DATA ?  diversion::nullopt : diversion::make_optional(Base::construct(row));
+	}
+
+	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const
+	{
+#pragma message("revisit it!!!!!!!!!!!!!!")
+		assert("not implemented yet!!!");
+		return diversion::nullopt;
+	}
+
+	void copy2(SQLLEN const* row, ValueType& out) const
+	{
+		if (*row != SQL_NULL_DATA)
+		{
+			out = diversion::make_optional(typename Base::ValueType{});
+			Base::copy2(row, out.value());
+		}
+	}
+
+	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const
+	{
+		out = construct(stmt, column);
+	}
+};
 
 template<typename T>
 struct DynamicallyBindable<T, decltype(std::declval<DynamicBind<T>>().dyn_column(std::declval<handle::Stmt>(), 0, 0))> : std::true_type {};

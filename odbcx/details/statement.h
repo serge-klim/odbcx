@@ -1,4 +1,5 @@
 #pragma once
+#include "odbcx/details/diversion.h"
 #include "odbcx/bindings/out.h"
 #include "odbcx/odbcx.h"
 #include <boost/fusion/include/at_c.hpp>
@@ -75,7 +76,7 @@ public:
 	}
 	using details::Statement::Handle;
 	Recordset fetch(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0, std::size_t n = 256);
-	boost::optional<Sequence> fetch_one(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0);
+	diversion::optional<Sequence> fetch_one(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0);
 };
 
 template<typename Sequence>
@@ -139,7 +140,7 @@ public:
 	using details::Statement::Handle;
 	Bindings const& bindings() const { return bindings_; }
 	Recordset fetch(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0, std::size_t n = 256);
-	boost::optional<Sequence> fetch_one(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0);
+	diversion::optional<Sequence> fetch_one(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0);
 private:
 	Bindings bindings_;
 };
@@ -255,14 +256,14 @@ typename odbcx::v0::StaticallyBindableStatement<Sequence>::Recordset odbcx::v0::
 }
 
 template<typename Sequence>
-boost::optional<Sequence> odbcx::v0::StaticallyBindableStatement<Sequence>::fetch_one(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/)
+diversion::optional<Sequence> odbcx::v0::StaticallyBindableStatement<Sequence>::fetch_one(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/)
 {
 	auto row = typename Bindings::Row{};
 	auto fetched = fetch2(&row, 1, orientation, offset);
 	assert(fetched == 0 || fetched == 1);
 	return fetched != 0
-		? boost::make_optional(std::move(row.value))
-		: boost::none;
+		? diversion::make_optional(std::move(row.value))
+		: diversion::nullopt;
 }
 
 template<typename Sequence>
@@ -280,13 +281,13 @@ typename odbcx::v0::DynamicallyBindableStatement<Sequence>::Recordset odbcx::v0:
 }
 
 template<typename Sequence>
-boost::optional<Sequence> odbcx::v0::DynamicallyBindableStatement<Sequence>::fetch_one(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/)
+diversion::optional<Sequence> odbcx::v0::DynamicallyBindableStatement<Sequence>::fetch_one(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/)
 {
 	std::vector<char> buffer(bindings().row_size());
 	auto fetched = fetch2(buffer.data(), 1, orientation, offset);
 	assert(fetched == 0 || fetched == 1);
 	return fetched != 0
-			 ? boost::make_optional(bindings().value(Handle(), buffer.data()))
-			 : boost::none;
+			 ? diversion::make_optional(bindings().value(Handle(), buffer.data()))
+			 : diversion::nullopt;
 }
 

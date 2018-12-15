@@ -1,4 +1,5 @@
 #pragma once
+#include "odbcx/details/diversion.h"
 #include "odbcx/odbcx.h"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <vector>
@@ -34,6 +35,16 @@ struct Test
 	SQL_TIMESTAMP_STRUCT ts;
 	std::vector<char> target;
 	std::string messagetype;
+	std::vector<std::uint8_t> pb;
+};
+
+struct TestOptional
+{
+	diversion::optional<int> id;
+	diversion::optional<SQL_TIMESTAMP_STRUCT> ts;
+	diversion::optional<std::vector<char>> target;
+	diversion::optional<std::string> messagetype;
+	diversion::optional<long> n;
 	std::vector<std::uint8_t> pb;
 };
 
@@ -76,6 +87,16 @@ BOOST_FUSION_ADAPT_STRUCT(
 	ts,
 	target,
 	messagetype,
+	pb
+	)
+
+BOOST_FUSION_ADAPT_STRUCT(
+	data::TestOptional,
+	id,
+	ts,
+	target,
+	messagetype,
+	n,
 	pb
 	)
 
