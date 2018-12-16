@@ -1,5 +1,5 @@
 #include <boost/test/unit_test.hpp>
-#include "odbcx/bindings/ttraits.h"
+#include "odbcx/bindings/ttraits.hpp"
 
 BOOST_AUTO_TEST_SUITE(TypeTTraitsestSuite)
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "details/statement.h"
+#include "details/statement.hpp"
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/range/iterator_range.hpp>
 #include <memory>

@@ -1,6 +1,6 @@
 #pragma once
-#include "odbcx/details/diversion.h"
-#include "odbcx/odbcx.h"
+#include "odbcx/details/diversion.hpp"
+#include "odbcx/odbcx.hpp"
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <vector>
 #include <cstdint>

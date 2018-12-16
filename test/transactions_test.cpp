@@ -1,7 +1,7 @@
 #include <boost/test/unit_test.hpp>
-#include "tests.h"
-#include "odbcx/odbcx.h"
-#include "odbcx/transaction.h"
+#include "tests.hpp"
+#include "odbcx/odbcx.hpp"
+#include "odbcx/transaction.hpp"
 #include <string>
 #include <vector>
 #include <cstdint>

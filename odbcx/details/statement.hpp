@@ -1,7 +1,7 @@
 #pragma once
-#include "odbcx/details/diversion.h"
-#include "odbcx/bindings/out.h"
-#include "odbcx/odbcx.h"
+#include "odbcx/details/diversion.hpp"
+#include "odbcx/bindings/out.hpp"
+#include "odbcx/odbcx.hpp"
 #include <boost/fusion/include/at_c.hpp>
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/size.hpp>

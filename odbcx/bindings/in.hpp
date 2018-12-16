@@ -1,7 +1,7 @@
 #pragma once
-#include "odbcx/details/diversion.h"
-#include "odbcx/utility.h"
-#include "ttraits.h"
+#include "odbcx/details/diversion.hpp"
+#include "odbcx/utility.hpp"
+#include "ttraits.hpp"
 #include <boost/mpl/bool_fwd.hpp>
 #include <boost/mpl/not.hpp>
 #include <type_traits>

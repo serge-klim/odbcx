@@ -8,7 +8,7 @@
 #include <vector>
 #include <tuple>
 #include <cassert>
-#include "utility.h"
+#include "utility.hpp"
 //#include <odbcss.h>
 //#include <boost/format.hpp>
 //#include <boost/chrono/process_cpu_clocks.hpp>

@@ -1,5 +1,5 @@
 #pragma once
-#include "odbcx/utility.h"
+#include "odbcx/utility.hpp"
 #include <boost/fusion/include/mpl.hpp>
 #include <boost/fusion/include/mpl.hpp>
 #include "boost/mpl/range_c.hpp"

@@ -1,7 +1,7 @@
 #include <boost/test/unit_test.hpp>
-#include "tests.h"
-#include "dd.h"
-#include "odbcx/query.h"
+#include "tests.hpp"
+#include "dd.hpp"
+#include "odbcx/query.hpp"
 #include <iterator>
 #include <string>
 #include <vector>

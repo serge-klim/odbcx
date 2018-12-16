@@ -1,10 +1,10 @@
 #include <boost/test/unit_test.hpp>
-#include "tests.h"
-#include "dd.h"
-#include "odbcx/odbcx.h"
-#include "odbcx/bindings/out.h"
-#include "odbcx/details/statement.h"
-#include "odbcx/query.h"
+#include "tests.hpp"
+#include "dd.hpp"
+#include "odbcx/odbcx.hpp"
+#include "odbcx/bindings/out.hpp"
+#include "odbcx/details/statement.hpp"
+#include "odbcx/query.hpp"
 #include <boost/core/ignore_unused.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(BindingsTestSuite, Fixture)

@@ -1,7 +1,7 @@
 #define BOOST_TEST_MODULE DBStuffTests
 #include <boost/test/unit_test.hpp>
-//#include "odbcx.h"
-//#include "fusion/details/bindings.h"
+//#include "odbcx.hpp"
+//#include "fusion/details/bindings.hpp"
 //#include <type_traits>
 
 BOOST_AUTO_TEST_CASE(CompileTimeTestTest)

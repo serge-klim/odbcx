@@ -7,10 +7,10 @@
 #include <boost/fusion/include/is_sequence.hpp>
 #include <boost/fusion/include/mpl.hpp>
 #include <boost/mpl/range_c.hpp>
-#include "odbcx/bindings/in.h"
-#include "odbcx/bindings/out.h"
-#include "odbcx/details/statement.h"
-#include "odbcx/utility.h"
+#include "odbcx/bindings/in.hpp"
+#include "odbcx/bindings/out.hpp"
+#include "odbcx/details/statement.hpp"
+#include "odbcx/utility.hpp"
 #include <boost/utility/string_view.hpp>
 #include <boost/optional.hpp>
 #include <algorithm>

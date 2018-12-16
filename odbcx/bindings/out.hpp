@@ -1,7 +1,7 @@
 #pragma once
-#include "ttraits.h"
-#include "odbcx/details/diversion.h"
-#include "odbcx/utility.h"
+#include "ttraits.hpp"
+#include "odbcx/details/diversion.hpp"
+#include "odbcx/utility.hpp"
 #include <boost/fusion/include/mpl.hpp>
 #include <boost/fusion/adapted/struct/detail/extension.hpp>
 #include <boost/fusion/include/is_sequence.hpp>

@@ -1,5 +1,5 @@
-#include "odbcx/query.h"
-#include "tests.h"
+#include "odbcx/query.hpp"
+#include "tests.hpp"
 
 int main()
 {
