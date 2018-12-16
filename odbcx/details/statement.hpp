@@ -75,7 +75,7 @@ public:
 		Bindings::bind(Handle());
 	}
 	using details::Statement::Handle;
-	Recordset fetch(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0, std::size_t n = 256);
+	Recordset fetch(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0, std::size_t n = (5*1024 + sizeof(Sequence) - 1) / sizeof(Sequence));
 	diversion::optional<Sequence> fetch_one(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0);
 };
 
@@ -139,7 +139,7 @@ public:
 	}
 	using details::Statement::Handle;
 	Bindings const& bindings() const { return bindings_; }
-	Recordset fetch(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0, std::size_t n = 256);
+	Recordset fetch(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0, std::size_t n = 32);
 	diversion::optional<Sequence> fetch_one(SQLSMALLINT orientation = SQL_FETCH_NEXT, SQLLEN offset = 0);
 private:
 	Bindings bindings_;
@@ -248,7 +248,7 @@ typename DynamicallyBindableRecordset<Sequence>::const_iterator end(DynamicallyB
 }/*inline namespace v0*/} //namespace odbcx
 
 template<typename Sequence>
-typename odbcx::v0::StaticallyBindableStatement<Sequence>::Recordset odbcx::v0::StaticallyBindableStatement<Sequence>::fetch(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/, std::size_t n /*= 256*/)
+typename odbcx::v0::StaticallyBindableStatement<Sequence>::Recordset odbcx::v0::StaticallyBindableStatement<Sequence>::fetch(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/, std::size_t n /*= (5*1024 + sizeof(Sequence) - 1) / sizeof(Sequence)*/)
 {
 	auto rows = std::vector<typename Bindings::Row>(n);
 	rows.resize(fetch2(rows.data(), n, orientation, offset));
@@ -267,7 +267,7 @@ diversion::optional<Sequence> odbcx::v0::StaticallyBindableStatement<Sequence>::
 }
 
 template<typename Sequence>
-typename odbcx::v0::DynamicallyBindableStatement<Sequence>::Recordset odbcx::v0::DynamicallyBindableStatement<Sequence>::fetch(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/, std::size_t n/* = 256*/)
+typename odbcx::v0::DynamicallyBindableStatement<Sequence>::Recordset odbcx::v0::DynamicallyBindableStatement<Sequence>::fetch(SQLSMALLINT orientation /*= SQL_FETCH_NEXT*/, SQLLEN offset /*= 0*/, std::size_t n/* = 32*/)
 {
 	n = bindings().bulk_fetch() ? n : 1;
 	auto row_size = bindings().row_size();

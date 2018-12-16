@@ -100,15 +100,6 @@ namespace odbcx { inline namespace v0 {
 	{
 		return SQLSetStmtAttr(sqlstmt.get(), attribute, value, string_length);
 	}
-	//using Bindings = std::pair<std::vector<std::tuple<SQLSMALLINT, size_t>>, size_t>;
-	//Bindings bind(handle::Stmt& sqlstmt);
-	//Bindings bind_as_strings(odbcx::handle::Stmt& sqlstmt);
-	//std::vector<char> fetch(handle::Stmt& sqlstmt, Bindings const& bindings, size_t n = 256);
-	//size_t col_count(Bindings const& bindings);
-	//size_t col_count(std::vector<char> const& /*buffer*/, Bindings const& bindings);
-	//size_t row_count(std::vector<char> const& buffer, Bindings const& bindings);
-	//std::pair<void const*, size_t> get(size_t row, size_t col, std::vector<char> const& buffer, Bindings const& bindings);
-	//size_t exec_simple_query(odbcx::handle::Dbc& sqlbc, SQLCHAR* query, SQLINTEGER len = SQL_NTS);
 	namespace details {
 		inline handle::Stmt allocate_statement_handle(handle::Dbc const& dbc)
 		{
