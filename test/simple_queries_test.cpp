@@ -42,22 +42,18 @@ BOOST_AUTO_TEST_CASE(InputParametersSimple1Test)
 
 BOOST_AUTO_TEST_CASE(InputParametersLongBinTest)
 {
-	auto data = std::vector<std::uint8_t>( 100 * 1024, 0xF );
-	auto target = std::string{ "test" };
-	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", target, "long  binary", data);
+	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", std::string{ "test" }, "long  binary", std::vector<std::uint8_t>(100 * 1024, 0xF));
 }
 
 BOOST_AUTO_TEST_CASE(InputParametersBinTest)
 {
-	auto data = std::vector<std::uint8_t>(10, 0xA);
-	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", "test","binary", data);
+	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", "test","binary", std::vector<std::uint8_t>(10, 0xA));
 }
 
 BOOST_AUTO_TEST_CASE(InputParametersEmptyTest)
 {
 	auto empty = std::string{};
-	auto data = std::vector<std::uint8_t>{};
-	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", empty, empty, data);
+	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", empty, empty, std::vector<std::uint8_t>{});
 }
 
 BOOST_AUTO_TEST_CASE(InputParametersEmptyOptionalTest)
@@ -111,9 +107,7 @@ BOOST_AUTO_TEST_CASE(InputParametersXTest)
 	ts.minute = 21;
 	ts.second = 0;
 	ts.fraction = 0;
-	auto message = std::string{ "message" };
-	auto data = std::vector<std::uint8_t>(100 * 1024, 0xF);
-	odbcx::query(dbc, "insert into test (ts, target, messagetype, N, pb) values(?,?,?,?,?)", ts, "target", message, ts.day, data);
+	odbcx::query(dbc, "insert into test (ts, target, messagetype, N, pb) values(?,?,?,?,?)", ts, "target", std::string{ "message" }, ts.day, std::vector<std::uint8_t>(100 * 1024, 0xF));
 }
 
 

@@ -22,6 +22,4 @@ unit-test test
       <library>/boost//program_options/<link>static
     ;
 
-compile-fail fail_in_test.cpp ;
-compile-fail fail_in_1_test.cpp ;
 compile-fail fail_select_stmt1_test.cpp ;

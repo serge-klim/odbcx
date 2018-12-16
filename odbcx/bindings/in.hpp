@@ -190,7 +190,6 @@ struct InputParameters
 	template<typename ...Params>
 	void bind(SQLLEN (&lengths)[sizeof...(Params)], handle::Stmt const& stmt, Params&& ...params) const
 	{
-		static_assert(InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		bind_<0>(stmt, lengths, std::forward<Params>(params)...);
 	}
 private:
