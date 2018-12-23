@@ -183,7 +183,7 @@ public:
 	DynamicallyBindableRecordset& operator=(DynamicallyBindableRecordset const&) = default;
 	DynamicallyBindableRecordset& operator=(DynamicallyBindableRecordset&&) = default;
 
-
+    //bool empty() const { return statement_ == nullptr; }
 	bool empty() const { return buffer_.empty(); }
 	std::size_t size() const { assert(buffer_.size() % statement_->bindings().row_size() == 0); return buffer_.size() / statement_->bindings().row_size(); }
 

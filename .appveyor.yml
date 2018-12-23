@@ -1,5 +1,7 @@
 environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
+  PGPASSWORD: Password12!
+  PGUSER: postgres
 
   matrix:
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -11,6 +13,7 @@ environment:
     VCPLATFORM:
     SQLSRV: MSSQL$SQL2017
     CODECOVE: ON
+    TEST_CONFIGS: mssql
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     BOOST_VER: x32-1.67
@@ -20,6 +23,7 @@ environment:
     VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
     VCPLATFORM:
     SQLSRV: MSSQL$SQL2017
+    TEST_CONFIGS: mssql
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
     BOOST_VER: x64-1.67
@@ -29,6 +33,7 @@ environment:
     VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
     VCPLATFORM: amd64_x86
     SQLSRV: MSSQL$SQL2008R2SP2
+    TEST_CONFIGS: mssql postgres
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
     BOOST_VER: x32-1.67
@@ -38,14 +43,14 @@ environment:
     VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
     VCPLATFORM: x86
     SQLSRV: MSSQL$SQL2008R2SP2
+    TEST_CONFIGS: mssql
 
   # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
   #   COMPILER: clang++-6.0 
   #   TOOLSET: clang
   #   CPPSTD: c++1y
   #   BOOST_VER: 1.69.0
-  #   TEST_ARGS:
-  #     -- -c 'Driver={ODBC Driver 17 for SQL Server};server=(local);database=test;UID=sa;PWD=Password12!;Mars_connection=yes;MultipleActiveResultSets=true;'
+  #   TEST_CONFIGS: mssql17
   #   INSTALL: clang-6.0 lld-6.0 libc++-dev libc++abi-dev
 
   # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
@@ -53,8 +58,7 @@ environment:
   #   TOOLSET: gcc-6
   #   CPPSTD: c++11
   #   BOOST_VER: 1.68.0
-  #   TEST_ARGS:
-  #     -- -c 'Driver={ODBC Driver 17 for SQL Server};server=(local);database=test;UID=sa;PWD=Password12!;Mars_connection=yes;MultipleActiveResultSets=true;'
+  #   TEST_CONFIGS: mssql17
 
   - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
     COMPILER: g++-8 
@@ -62,8 +66,7 @@ environment:
     CPPSTD: c++14
     BOOST_VER: 1.68.0
     INSTALL: build-essential gcc-8-multilib
-    TEST_ARGS:
-      -- -c 'Driver={ODBC Driver 17 for SQL Server};server=(local);database=test;UID=sa;PWD=Password12!;Mars_connection=yes;MultipleActiveResultSets=true;'
+    TEST_CONFIGS: mssql17
 
 for:
 -
@@ -72,12 +75,14 @@ for:
       - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
   services:
     - mssql2008r2sp2
+    - postgresql101
 -
   matrix:
     only:
       - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   services:
     - mssql2017
+    - postgresql101
 
 services:
   - mssql
@@ -116,13 +121,16 @@ install:
       export BOOST_ROOT=${APPVEYOR_BUILD_FOLDER}/boost_${BOOST_VER//./_}    
 
   - cmd: cd %APPVEYOR_BUILD_FOLDER%
-  - curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/project-config.jam > project-config.jam 
+  - curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/project-config.jam > project-config.jam
+  - cmd: PATH=C:\Program Files\PostgreSQL\10\bin\;%PATH%
+  - ps: Get-OdbcDriver -Platform 64-bit | Select-Object -ExpandProperty Name
 build_script:
-  - appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master" 
+  - appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
+  - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgress.sql
   - cmd: |
-      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi -a %CONFIG%
+      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% testing.configs="%TEST_CONFIGS%" threading=multi -a %CONFIG%
   - sh: |
-      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib -sTEST_ARGS="${TEST_ARGS}" debug 
+      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib testing.configs="${TEST_CONFIGS}" debug 
 on_success:
   - cmd: |
       if not [%CODECOVE%]==[] ("C:\ProgramData\chocolatey\lib\codecov\tools\codecov" -f "cobertura.xml" -t "4cd5b25e-4ca1-4bf0-ac42-92924658728a")

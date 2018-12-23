@@ -1,6 +1,8 @@
 import boost ;
 boost.use-project ;
 
+import feature ;
+feature.feature testing.configs        : : free incidental ;
 
 project dbtest
     : requirements 
