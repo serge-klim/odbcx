@@ -33,13 +33,6 @@ constexpr T const* data_cast(SQLLEN const* ptr)
 	return reinterpret_cast<T const*>(reinterpret_cast<char const*>(ptr + 1) + sizeof(SQLLEN) % alignof(T));
 }
 
-//template<typename T>
-//constexpr T const* data_ptr(void* ptr, std::size_t n)
-//{
-//	auto res = reinterpret_cast<std::uint8_t const*>(reinterpret_cast<T const*>(ptr) + n) + sizeof(SQLLEN) + sizeof(SQLLEN) % alignof(T);
-//	return reinterpret_cast<T const*>(res);
-//}
-
 template<>
 struct Bind<NoBind, boost::mpl::true_>
 {
@@ -78,13 +71,12 @@ struct Bind<SQL_TIMESTAMP_STRUCT, boost::mpl::true_>
 	using ValueType = SQL_TIMESTAMP_STRUCT;
 	ValueType construct(SQLLEN const* row) const
 	{
-		static constexpr SQL_TIMESTAMP_STRUCT none = { 0 };
 		assert(*row == SQL_NULL_DATA || *row == sizeof(SQL_TIMESTAMP_STRUCT));
-		return *row == SQL_NULL_DATA ? none : *data_cast<SQL_TIMESTAMP_STRUCT>(row);
+		return *row == SQL_NULL_DATA ? SQL_TIMESTAMP_STRUCT{ 0 } : *data_cast<SQL_TIMESTAMP_STRUCT>(row);
 	}
 	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
 
-	void copy2(SQLLEN const* row, SQL_TIMESTAMP_STRUCT& out) const { out = *data_cast<SQL_TIMESTAMP_STRUCT>(row); }
+	void copy2(SQLLEN const* row, SQL_TIMESTAMP_STRUCT& out) const { out = SQL_NULL_DATA == *row ? SQL_TIMESTAMP_STRUCT{0} : *data_cast<SQL_TIMESTAMP_STRUCT>(row); }
 	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, SQL_TIMESTAMP_STRUCT& /*out*/) const { assert(!"unexpected call"); }
 };
 
@@ -258,6 +250,7 @@ std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALL
 				break;
 			}
 			buffer.resize(total + chunk_size);
+			read = 0;
 		} while (call(&SQLGetData, stmt, column, type, buffer.data() + total / sizeof(T), buffer.size() * sizeof(T) - total, &read) != SQL_NO_DATA);
 		assert(read == 0);
 	}
@@ -267,7 +260,9 @@ std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALL
 		if (read > SQLLEN(chunk_size)) // driver just returns size of data, so read it one go
 		{
 			buffer.resize(total / sizeof(T));
+			read = 0;
 			call(&SQLGetData, stmt, column, type, buffer.data() + chunk_size / sizeof(T), buffer.size() * sizeof(T) - chunk_size, &read);
+			assert(read + chunk_size == total);
 		} 
 		else
 		{
@@ -526,38 +521,6 @@ public:
 		init<0>(stmt, row, val);
 		return val;
 	}
-
-	//template<std::size_t N>
-	//ValueType<N> get(handle::Stmt const& stmt, char const* row) const
-	//{
-	//	std::size_t data_offset = std::size_t(data_cast<Bind::RawValueType>(nullptr));
-	//	std::size_t totall = 0;
-	//	SQLLEN read = 0;
-	//	std::size_t chunk_size = 1024;
-	//	auto res = std::vector<char>(data_offset + chunk_size);
-	//	//https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/getting-long-data?view=sql-server-2017
-	//	if (call(&SQLGetData, stmt, SQLUSMALLINT(N + 1), SQL_C_BINARY, res.data() + data_offset, res.size() - data_offset, &read) == SQL_NO_DATA || read == SQL_NULL_DATA)
-	//		return {};
-	//	do {
-	//		if (read != SQL_NO_TOTAL)
-	//		{
-	//			totall += read;
-	//			if (read > chunk_size)
-	//			{
-	//				chunk_size = read - chunk_size;
-	//				totall -= chunk_size;
-	//			}
-	//		}
-	//		else
-	//			totall += chunk_size;
-	//		res.resize(data_offset + totall + chunk_size);
-	//		assert(res.size() > data_offset + total);
-	//	} while (call(&SQLGetData, stmt, SQLUSMALLINT(N + 1), SQL_C_BINARY, res.data() + data_offset + total, res.size() - data_offset - total, &read) != SQL_NO_DATA);
-	//	//res.resize(totall);
-	//	auto indicator = reinterpret_cast<SQLLEN const*>(res.data());
-	//	*indicator = total;
-	//	return Bind{}.construct(indicator);
-	//}
 private:
 	template<std::size_t N>
 	static auto bind_(handle::Stmt const& stmt, std::size_t offset, Offsets& offsets) -> typename std::enable_if<boost::fusion::result_of::size<Sequence>::value != N, void>::type
@@ -577,43 +540,32 @@ private:
 	template<std::size_t N>
 	auto init(handle::Stmt const& stmt, char const* row, Sequence& sequence) const -> typename std::enable_if<boost::fusion::result_of::size<Sequence>::value != N, void>::type
 	{
-		auto bind = DynamicBind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>{};
 		if (offsets_.size() > N)
 		{
 			auto offset = N == 0 ? 0 : offsets_[N - 1];
 			auto indicator = reinterpret_cast<SQLLEN const*>(row + offset);
-			bind.copy2(indicator, boost::fusion::at_c<N>(sequence));
+			DynamicBind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>{}.copy2(indicator, boost::fusion::at_c<N>(sequence));
+			init<N + 1>(stmt, row, sequence);
 		}
 		else
-			bind.read2(stmt, SQLUSMALLINT(N + 1), boost::fusion::at_c<N>(sequence));
-		//boost::fusion::at_c<N>(sequence) = get<N>(stmt, row);
-		init<N + 1>(stmt, row, sequence);
+			read<N>(stmt, sequence);
+	}
+
+	template<std::size_t N>
+	auto read(handle::Stmt const& stmt, Sequence& sequence) const -> typename std::enable_if<boost::fusion::result_of::size<Sequence>::value != N, void>::type
+	{
+		DynamicBind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>{}.read2(stmt, SQLUSMALLINT(N + 1), boost::fusion::at_c<N>(sequence));
+		read<N + 1>(stmt, sequence);
 	}
 
 	template<std::size_t N>
 	auto init(handle::Stmt const& /*stmt*/, char const* /*row*/, Sequence& /*sequence*/) const -> typename std::enable_if<boost::fusion::result_of::size<Sequence>::value == N, void>::type {}
+
+	template<std::size_t N>
+	auto read(handle::Stmt const& /*stmt*/, Sequence& /*sequence*/) const -> typename std::enable_if<boost::fusion::result_of::size<Sequence>::value == N, void>::type {}
 private:
 	Offsets offsets_;
 };
-
-
-//template<typename Sequence>
-//struct Binder
-//{
-//	static_assert(boost::fusion::traits::is_sequence<Sequence>::value, "fusion sequence expected");
-//	void operator ()(handle::Stmt const & stmt, Sequence const* data, SQLLEN const* indicator) const { bind<0>(stmt, data, indicator); }
-//private:
-//	template<std::size_t N>
-//	auto bind(handle::Stmt const & stmt, Sequence const* data, SQLLEN const* indicator) const ->typename std::enable_if<boost::fusion::result_of::size<Sequence>::value != N, void>::type
-//	{
-//		auto const& dummy = boost::fusion::at_c<N>(*data);
-//		Bind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>{}(stmt, N + 1, SQLPOINTER(&dummy), const_cast<SQLLEN*>(indicator) + N);
-//		bind<N+1>(stmt, data, indicator);
-//	}
-//
-//	template<std::size_t N>
-//	auto bind(handle::Stmt const & /*stmt*/, Sequence const* /*data*/, SQLLEN const* /*indicator*/) const ->typename std::enable_if<boost::fusion::result_of::size<Sequence>::value == N, void>::type {}
-//};
 
 template<typename Sequence>
 struct NameGenerator
