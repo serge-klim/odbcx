@@ -275,13 +275,11 @@ std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALL
 }
 
 template<typename T>
-struct DynamicBind<std::basic_string<T>, boost::mpl::true_>
+std::size_t bind_column_dyn(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALLINT type, std::size_t offset)
 {
-	std::size_t dyn_column(handle::Stmt const& stmt, SQLUSMALLINT column, std::size_t offset)
-	{
 		assert(offset % alignof(SQLLEN) == 0 && "Oops! offset should be aligned to SQLLEN(indicator type)");
 		SQLSMALLINT name_length = 0;
-		SQLSMALLINT type;
+		SQLSMALLINT type_;
 		SQLULEN data_size;
 		SQLSMALLINT data_digits;
 		SQLSMALLINT nullable;
@@ -292,15 +290,23 @@ struct DynamicBind<std::basic_string<T>, boost::mpl::true_>
 							nullptr,                  // Column Name (returned)
 							0,                        // size of Column Name buffer
 							&name_length,             // Actual size of column name
-							&type,                    // SQL Data type of column
+							&type_,                    // SQL Data type of column
 							&data_size,               // Data size of column in table
 							&data_digits,             // Number of decimal digits
 							&nullable);               // Whether column nullable
 
 		constexpr SQLULEN MaxBindableDataSize = 8000;
-		return data_size > MaxBindableDataSize 
+		return data_size == 0 || data_size > MaxBindableDataSize
 			 ? offset
-			 : bind_column<T>(stmt, column, SQL_CHAR, offset, data_size);
+			 : bind_column<T>(stmt, column, type, offset, data_size);
+}
+
+template<typename T>
+struct DynamicBind<std::basic_string<T>, boost::mpl::true_>
+{
+	std::size_t dyn_column(handle::Stmt const& stmt, SQLUSMALLINT column, std::size_t offset)
+	{
+		return bind_column_dyn<T>(stmt, column, SQL_CHAR, offset);
 	}
 
 	using ValueType = std::basic_string<T>;
@@ -366,28 +372,7 @@ struct DynamicBind<std::vector<char>, boost::mpl::true_> : DynamicBindVector<cha
 {
 	std::size_t dyn_column(handle::Stmt const& stmt, SQLUSMALLINT column, std::size_t offset)
 	{
-		assert(offset % alignof(SQLLEN) == 0 && "Oops! offset should be aligned to SQLLEN(indicator type)");
-		SQLSMALLINT name_length = 0;
-		SQLSMALLINT type;
-		SQLULEN data_size;
-		SQLSMALLINT data_digits;
-		SQLSMALLINT nullable;
-
-		call(&SQLDescribeCol,
-							stmt,                  // Select Statement (Prepared)
-							column,                   // Columnn Number
-							nullptr,                  // Column Name (returned)
-							0,                        // size of Column Name buffer
-							&name_length,             // Actual size of column name
-							&type,                    // SQL Data type of column
-							&data_size,               // Data size of column in table
-							&data_digits,             // Number of decimal digits
-							&nullable);               // Whether column nullable
-
-		constexpr SQLULEN MaxBindableDataSize = 8000;
-		return data_size > MaxBindableDataSize 
-			 ? offset
-			 : bind_column<char>(stmt, column, SQL_CHAR, offset, data_size);
+		return bind_column_dyn<char>(stmt, column, SQL_CHAR, offset);
 	}
 };
 
@@ -396,28 +381,7 @@ struct DynamicBind<std::vector<T>, boost::mpl::bool_<sizeof(T) == sizeof(std::ui
 {
 	std::size_t dyn_column(handle::Stmt const& stmt, SQLUSMALLINT column, std::size_t offset)
 	{
-		assert(offset % alignof(SQLLEN) == 0 && "Oops! offset should be aligned to SQLLEN(indicator type)");
-		SQLSMALLINT name_length = 0;
-		SQLSMALLINT type;
-		SQLULEN data_size;
-		SQLSMALLINT data_digits;
-		SQLSMALLINT nullable;
-
-		call(&SQLDescribeCol,
-							stmt,                  // Select Statement (Prepared)
-							column,                   // Columnn Number
-							nullptr,                  // Column Name (returned)
-							0,                        // size of Column Name buffer
-							&name_length,             // Actual size of column name
-							&type,                    // SQL Data type of column
-							&data_size,               // Data size of column in table
-							&data_digits,             // Number of decimal digits
-							&nullable);               // Whether column nullable
-
-		constexpr SQLULEN MaxBindableDataSize = 8000;
-		return data_size > MaxBindableDataSize 
-			 ? offset
-			 : bind_column<T>(stmt, column, SQL_C_BINARY, offset, data_size);
+		return bind_column_dyn<T>(stmt, column, SQL_C_BINARY, offset);
 	}
 };
 
