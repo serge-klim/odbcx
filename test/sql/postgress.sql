@@ -1,4 +1,4 @@
-CREATE DATABASE test;
+-- CREATE DATABASE test;
 
 CREATE TABLE test (
   ID SERIAL,
