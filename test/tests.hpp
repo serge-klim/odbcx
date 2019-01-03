@@ -57,8 +57,11 @@ private:
 	static odbcx::handle::Env AllocEnvironment()
 	{
 		auto env = odbcx::handle::allocate<SQL_HANDLE_ENV>();
-		odbcx::call(&SQLSetEnvAttr, env, SQL_ATTR_ODBC_VERSION, SQLPOINTER(SQL_OV_ODBC3_80), 0);
-		odbcx::call(&SQLSetEnvAttr, env, SQL_ATTR_CONNECTION_POOLING, SQLPOINTER(SQL_CP_ONE_PER_DRIVER), SQL_IS_UINTEGER);
+#ifdef SQL_OV_ODBC3_80
+		if (SQLSetEnvAttr(env.get(), SQL_ATTR_ODBC_VERSION, SQLPOINTER(SQL_OV_ODBC3_80), 0) == SQL_SUCCESS)
+			return env;
+#endif // SQL_OV_ODBC3_80
+		odbcx::call(&SQLSetEnvAttr, env, SQL_ATTR_ODBC_VERSION, SQLPOINTER(SQL_OV_ODBC3), 0);
 		return env;
 	}
 

@@ -1,5 +1,5 @@
 [ODBC]
-DRIVER=PostgreSQL ANSI
+DRIVER=PostgreSQL ANSI(x64)
 UID=postgres
 PWD=Password12!
 TrustServerCertificate=No

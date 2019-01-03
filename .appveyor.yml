@@ -12,7 +12,7 @@ environment:
     VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
     VCPLATFORM:
     SQLSRV: MSSQL$SQL2017
-    TEST_CONFIGS: mssql postgres mysql5_3
+    TEST_CONFIGS: mssql postgres64 mysql5_3
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     BOOST_VER: x32-1.67
@@ -33,7 +33,7 @@ environment:
     VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
     VCPLATFORM: amd64_x86
     SQLSRV: MSSQL$SQL2008R2SP2
-    TEST_CONFIGS: mssql postgres mysql5_3
+    TEST_CONFIGS: mssql postgres64 mysql5_3
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
     BOOST_VER: x32-1.67
