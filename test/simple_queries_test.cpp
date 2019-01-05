@@ -110,5 +110,23 @@ BOOST_AUTO_TEST_CASE(InputParametersXTest)
 	odbcx::query(dbc, "insert into test (ts, target, messagetype, N, pb) values(?,?,?,?,?)", ts, "target", std::string{ "message" }, ts.day, std::vector<std::uint8_t>(100 * 1024, 0xF));
 }
 
+BOOST_AUTO_TEST_CASE(SelectOnlyBlobsTest)
+{
+	auto val = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test");
+	BOOST_CHECK_EQUAL(!val, false);
+	auto n = val.value();
+	BOOST_CHECK_NE(n, 0);
+
+	auto stmt = odbcx::query(dbc, "SELECT pb FROM test");
+	SQLULEN fetched = 0;
+	odbcx::SQLSetStmtAttr(stmt, SQL_ATTR_ROWS_FETCHED_PTR, &fetched);
+	auto nn = 0;
+	while (odbcx::call(&SQLFetchScroll, stmt, SQL_FETCH_NEXT, 0) != SQL_NO_DATA && fetched != 0)
+	{
+		auto data = odbcx::read_data<std::uint8_t>(stmt, 1, SQL_C_BINARY);
+		++nn;
+	}
+	BOOST_CHECK_EQUAL(n, nn);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

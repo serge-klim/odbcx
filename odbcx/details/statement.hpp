@@ -183,7 +183,6 @@ public:
 	DynamicallyBindableRecordset& operator=(DynamicallyBindableRecordset const&) = default;
 	DynamicallyBindableRecordset& operator=(DynamicallyBindableRecordset&&) = default;
 
-    //bool empty() const { return statement_ == nullptr; }
 	bool empty() const { return buffer_.empty(); }
 	std::size_t size() const { assert(buffer_.size() % statement_->bindings().row_size() == 0); return buffer_.size() / statement_->bindings().row_size(); }
 
@@ -272,8 +271,7 @@ typename odbcx::v0::DynamicallyBindableStatement<Sequence>::Recordset odbcx::v0:
 	n = bindings().bulk_fetch() ? n : 1;
 	auto row_size = bindings().row_size();
 	auto buffer = std::vector<char>(row_size * n);
-	assert(!buffer.empty());
-#pragma message("it is actually valid case, has to be fixed!!!!!!!!!!!!!")
+	assert(!buffer.empty() && "binding pure blobs makes not much sense please add some bindable data to query or use odbcx::read_data/SQLGetData");
 	assert(bindings().bulk_fetch() || n == 1);
 	auto fetched = fetch2(buffer.data(), n, orientation, offset);
 	buffer.resize(row_size * fetched);

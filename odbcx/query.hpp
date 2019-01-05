@@ -37,9 +37,11 @@ void query(handle::Stmt const& stmt, std::string const& text, Params&& ...params
 }
 
 template<typename ...Params>
-void query(handle::Dbc const& dbc, std::string const& text, Params&& ...params)
+handle::Stmt query(handle::Dbc const& dbc, std::string const& text, Params&& ...params)
 {
-	query(details::allocate_statement_handle(dbc), text, std::forward<Params>(params)...);
+	auto stmt = details::allocate_statement_handle(dbc);
+	query(stmt, text, std::forward<Params>(params)...);
+	return stmt;
 }
 
 

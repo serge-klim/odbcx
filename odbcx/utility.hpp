@@ -118,4 +118,56 @@ namespace odbcx { inline namespace v0 {
 	void end_transaction(SQLHANDLE dbc, SQLSMALLINT completionType = SQL_ROLLBACK);
 	bool autocommit_mode(handle::Dbc const& dbc);
 	bool autocommit_mode(SQLHANDLE dbc);
+
+
+	template<typename T>
+	std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALLINT type)
+	{
+		std::size_t chunk_size = 1024;
+		auto buffer = std::vector<T>(chunk_size);
+		SQLLEN read = 0;
+		//https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/getting-long-data?view=sql-server-2017
+		if (call(&SQLGetData, stmt, column, type, buffer.data(), buffer.size() * sizeof(T), &read) == SQL_NO_DATA)
+			throw std::runtime_error("SQLGetData can be called once only");
+		if (read == SQL_NULL_DATA)
+			return {};
+
+		std::size_t total = 0;
+		if (read == SQL_NO_TOTAL || std::size_t(read) == chunk_size)
+		{
+			//well have to read it chunk by chunk:(
+			do {
+				if (read == SQL_NO_TOTAL)
+					read = chunk_size;
+				total += read;
+				if (read != SQLLEN(chunk_size))
+				{
+					assert(read < SQLLEN(chunk_size));
+					assert((read = 0) && "emulating SQLGetData(...) == SQL_NO_DATA and read == 0 to pass next assert");
+					break;
+				}
+				buffer.resize(total + chunk_size);
+				read = 0;
+			} while (call(&SQLGetData, stmt, column, type, buffer.data() + total / sizeof(T), buffer.size() * sizeof(T) - total, &read) != SQL_NO_DATA);
+			assert(read == 0);
+		}
+		else
+		{
+			total = std::size_t(read);
+			if (read > SQLLEN(chunk_size)) // driver just returns size of data, so read it one go
+			{
+				buffer.resize(total / sizeof(T));
+				read = 0;
+				call(&SQLGetData, stmt, column, type, buffer.data() + chunk_size / sizeof(T), buffer.size() * sizeof(T) - chunk_size, &read);
+				assert(read + chunk_size == total);
+			}
+			else
+			{
+				//seems that size of data is less than chunk_size, done here...
+				assert(read > 0 && read < SQLLEN(chunk_size));
+			}
+		}
+		buffer.resize(total / sizeof(T));
+		return buffer;
+	}
 }/*inline namespace v0*/} //namespace odbcx

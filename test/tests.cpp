@@ -1,11 +1,11 @@
 #define BOOST_TEST_MODULE DBStuffTests
 #include <boost/test/unit_test.hpp>
-//#include "odbcx.hpp"
-//#include "fusion/details/bindings.hpp"
-//#include <type_traits>
+#include "odbcx/utility.hpp"
 
-BOOST_AUTO_TEST_CASE(CompileTimeTestTest)
+
+BOOST_AUTO_TEST_CASE(ConnectionTestTest)
 {
-//	static_assert(odbc::details::StaticallyBindable<int>::value, "Oops! int should be staticaly bindable");
-////	test<std::declval<odbc::details::Bind<int>>().column(std::declval<odbc::handle::Stmt>(), 0, nullptr, nullptr)>();
+	auto env = odbcx::handle::allocate<SQL_HANDLE_ENV>();
+	BOOST_CHECK_THROW(odbcx::call(&SQLSetEnvAttr, env, SQL_ATTR_ODBC_VERSION, SQLPOINTER(SQL_OV_ODBC3 + 100), 0), std::runtime_error);
+	odbcx::call(&SQLSetEnvAttr, env, SQL_ATTR_ODBC_VERSION, SQLPOINTER(SQL_OV_ODBC3), 0);
 }
