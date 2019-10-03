@@ -1,5 +1,3 @@
-//#include <windows.h>
-
 #include <cstdint>
 #include <stdexcept>
 #include <iostream>
@@ -9,13 +7,6 @@
 #include <tuple>
 #include <cassert>
 #include "utility.hpp"
-//#include <odbcss.h>
-//#include <boost/format.hpp>
-//#include <boost/chrono/process_cpu_clocks.hpp>
-//#include <boost/chrono/chrono_io.hpp>
-// CliConfg.exe
-// https://kb.iu.edu/d/aytk
-// https://support.microsoft.com/en-us/help/942861/general-network-error-communication-link-failure-or-a-transport-level
 
 SQLRETURN odbcx::v0::details::IfFailedThrow(SQLRETURN sqlres, SQLHANDLE handle, SQLSMALLINT type)
 {

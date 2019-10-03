@@ -102,7 +102,6 @@ install:
       choco install opencppcoverage codecov &
       echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources %APPVEYOR_BUILD_FOLDER% --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
   - sh: |
-      alias appveyor-retry="sleep 45 &&"
       sudo apt-get update && sudo apt-get install -y ${INSTALL}
       if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
   # - sh: |
@@ -129,6 +128,7 @@ install:
   - ps: Get-OdbcDriver -Platform 64-bit | Select-Object -ExpandProperty Name
   - sh: odbcinst -j && cat /etc/odbcinst.ini
 build_script:
+  - sh: alias appveyor-retry="sleep 45 && "
   - appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
   - mysql --user=root --password=Password12! < test/sql/mysql.sql
   - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgress.sql
