@@ -1,7 +1,7 @@
 #pragma once
 #include "utility.hpp"
 
-namespace odbcx {
+namespace odbcx { inline namespace v0 {
 
 class ScopedTransaction
 {
@@ -38,4 +38,4 @@ private:
 	SQLHANDLE dbc_;
 };
 
-} //namespace odbcx
+}/*inline namespace v0*/} //namespace odbcx

@@ -30,3 +30,5 @@ CREATE TABLE test_optional (
 insert into test (ts, target, messagetype, n, pb) VALUES (CURRENT_TIMESTAMP, 'test', 'message 1', 0, decode('0123456789ABCDEF', 'hex'));
 
 insert into test (ts, target, messagetype, n, pb) VALUES (CURRENT_TIMESTAMP, 'test', 'message 2', 0, decode('FEDCBA9876543210', 'hex'));
+
+insert into test (ts, target, messagetype, n) VALUES (CURRENT_TIMESTAMP, 'test', 'message 3', 0);

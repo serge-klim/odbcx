@@ -1,7 +1,7 @@
 #pragma once
 #include "odbcx/details/diversion.hpp"
 #include "odbcx/bindings/out.hpp"
-#include "odbcx/odbcx.hpp"
+#include "odbcx/utility.hpp"
 #include <boost/fusion/include/at_c.hpp>
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/size.hpp>
@@ -38,6 +38,11 @@ protected:
 		SQLLEN row_offset = SQLLEN(buffer) - details::bindings_offset;
 		SQLSetStmtAttr(stmt_, SQL_ATTR_ROW_BIND_OFFSET_PTR, &row_offset);
 		SQLSetStmtAttr(stmt_, SQL_ATTR_ROW_ARRAY_SIZE, reinterpret_cast<SQLPOINTER>(n));
+        return fetch(orientation, offset);
+	}
+
+    std::size_t fetch(SQLSMALLINT orientation, SQLLEN offset = 0)
+    {
 		SQLULEN fetched = 0;
 		SQLSetStmtAttr(stmt_, SQL_ATTR_ROWS_FETCHED_PTR, &fetched);
 //		https://support.oracle.com/knowledge/Oracle%20Database%20Products/1472987_1.html
@@ -52,7 +57,7 @@ protected:
 		//}) == end(statuses));
 		//return statuses;
 		return call(&SQLFetchScroll, stmt_, orientation, offset) == SQL_NO_DATA ? 0 : std::size_t{ fetched };
-	}
+    }
 private:
 	handle::Stmt stmt_;
 };
@@ -271,7 +276,6 @@ typename odbcx::v0::DynamicallyBindableStatement<Sequence>::Recordset odbcx::v0:
 	n = bindings().bulk_fetch() ? n : 1;
 	auto row_size = bindings().row_size();
 	auto buffer = std::vector<char>(row_size * n);
-	assert(!buffer.empty() && "binding pure blobs makes not much sense please add some bindable data to query or use odbcx::read_data/SQLGetData");
 	assert(bindings().bulk_fetch() || n == 1);
 	auto fetched = fetch2(buffer.data(), n, orientation, offset);
 	buffer.resize(row_size * fetched);

@@ -400,7 +400,7 @@ public:
 	bool bulk_fetch() const { return boost::fusion::result_of::size<Sequence>::value == offsets_.size();}
 	bool empty() const { return offsets_.empty(); }
 	std::size_t size() const { return offsets_.size(); }
-	std::size_t row_size() const { assert(!offsets_.empty()); return offsets_.back(); }
+    std::size_t row_size() const { return offsets_.empty() ? 1 : offsets_.back(); }
 
 	static DynamicBindings bind(handle::Stmt const& stmt)
 	{

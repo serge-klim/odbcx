@@ -58,6 +58,11 @@ struct TestPBHybrid
 	std::vector<std::uint8_t> pb;
 };
 
+struct BlobOnly
+{
+	std::vector<std::uint8_t> pb;
+};
+
 } // namespace data
 
 BOOST_FUSION_ADAPT_STRUCT(
@@ -110,4 +115,8 @@ BOOST_FUSION_ADAPT_STRUCT(
 	pb
 )
 
+BOOST_FUSION_ADAPT_STRUCT(
+	data::BlobOnly,
+	pb
+)
 

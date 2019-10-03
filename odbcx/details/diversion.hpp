@@ -11,12 +11,14 @@
 #include <boost/utility/string_view.hpp>
 namespace diversion { using boost::string_view; }
 #else
+#include <string_view>
 namespace diversion { using std::string_view; }
 #endif
 #if defined(ODBCX_PREFER_BOOST_OPTIONAL__) || !defined(__cpp_lib_optional)
 #include <boost/optional.hpp>
 namespace diversion { using boost::optional; using boost::make_optional; const auto nullopt = boost::none;}
 #else
+#include<optional>
 namespace diversion { using std::optional; using std::make_optional; using std::nullopt;}
 #endif
 
@@ -28,6 +30,7 @@ using boost::variant;
 template<typename ...Args> auto visit(Args&& ...args) -> decltype(boost::apply_visitor(std::forward<Args>(args)...)) { return boost::apply_visitor(std::forward<Args>(args)...); }
 }
 #else
+#include<variant>
 namespace diversion { using std::variant; using std::visit; }
 #endif
 

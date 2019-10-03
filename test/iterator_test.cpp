@@ -238,5 +238,55 @@ BOOST_AUTO_TEST_CASE(SelectStatementDynamicNoBlobIteratorDerefTest)
 	}
 }
 
+BOOST_AUTO_TEST_CASE(SelectBlobTest)
+{
+    auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test").value();
+    BOOST_CHECK_NE(n, 0);
+    
+    auto range = odbcx::fetch_range(odbcx::select<data::BlobOnly>{}.from("test").exec(dbc));
+    BOOST_CHECK(range.begin() != range.end());
+    BOOST_CHECK_EQUAL(std::distance(range.begin(), range.end()), n);
+
+    {
+        auto range = odbcx::fetch_range(odbcx::select<data::BlobOnly>{}.from("test").exec(dbc));
+        auto empty = 0;
+        auto notempty = 0;
+        for (auto const& rec : range)
+        {
+            if (rec.pb.empty())
+                ++empty;
+            else
+                ++notempty;
+        }
+        BOOST_CHECK_NE(empty, 0);
+        BOOST_CHECK_NE(notempty, 0);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(Select2BlobsTest)
+{
+    auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test").value();
+    BOOST_CHECK_NE(n, 0);
+
+    auto range = odbcx::fetch_range(odbcx::query<std::tuple<std::vector<std::uint8_t>, std::vector<std::uint8_t>>>(dbc, "SELECT pb, pb FROM test"));
+    BOOST_CHECK(range.begin() != range.end());
+    BOOST_CHECK_EQUAL(std::distance(range.begin(), range.end()), n);
+
+    {
+        auto range = odbcx::fetch_range(odbcx::query<std::tuple<std::vector<std::uint8_t>, std::vector<std::uint8_t>>>(dbc, "SELECT pb, pb FROM test"));
+        auto empty = 0;
+        auto notempty = 0;
+        for (auto const& rec : range)
+        {
+            BOOST_CHECK_EQUAL(std::get<0>(rec).size(), std::get<1>(rec).size());
+            if (std::get<0>(rec).empty())
+                ++empty;
+            else
+                ++notempty;
+        }
+        BOOST_CHECK_NE(empty, 0);
+        BOOST_CHECK_NE(notempty, 0);
+    }
+}
 
 BOOST_AUTO_TEST_SUITE_END()

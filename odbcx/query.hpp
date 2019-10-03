@@ -19,7 +19,7 @@
 #include <string>
 #include <cassert>
 
-namespace odbcx{
+namespace odbcx { inline namespace v0 {
 
 inline void query(handle::Stmt const& stmt, std::string const& text)
 {
@@ -233,4 +233,4 @@ private:
 template<typename OutSequence>
 using select = Select<OutSequence>;
 
-} //namespace odbcx
+}/*inline namespace v0*/} //namespace odbcx

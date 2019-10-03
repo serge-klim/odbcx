@@ -41,3 +41,7 @@ GO
 
 insert into test (ts, target, messagetype, n, pb) VALUES (GETDATE(), 'test', 'message 2', 0, 0xFEDCBA9876543210)
 GO
+
+
+insert into test (ts, target, messagetype, n) VALUES (GETDATE(), 'test', 'message 3', 0)
+GO
