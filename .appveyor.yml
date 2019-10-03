@@ -1,0 +1,144 @@
+environment:
+  APPVEYOR_YML_DISABLE_PS_LINUX: true
+  PGPASSWORD: Password12!
+  PGUSER: postgres
+
+  matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    BOOST_VER: x64-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.1
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
+    VCPLATFORM:
+    SQLSRV: MSSQL$SQL2017
+    TEST_CONFIGS: mssql postgres64 mysql5_3
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    BOOST_VER: x32-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib32-msvc-14.1
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
+    VCPLATFORM:
+    SQLSRV: MSSQL$SQL2017
+    CODECOVE: ON
+    TEST_CONFIGS: mssql
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    BOOST_VER: x64-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib64-msvc-14.0
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
+    VCPLATFORM: amd64_x86
+    SQLSRV: MSSQL$SQL2008R2SP2
+    TEST_CONFIGS: mssql postgres64 mysql5_3
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    BOOST_VER: x32-1.67
+    BOOST_ROOT: C:\Libraries\boost_1_67_0
+    BOOST_LIBS: C:\Libraries\boost_1_67_0\lib32-msvc-14.0
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
+    VCPLATFORM: x86
+    SQLSRV: MSSQL$SQL2008R2SP2
+    TEST_CONFIGS: mssql
+
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+  #   COMPILER: clang++-6.0 
+  #   TOOLSET: clang
+  #   CPPSTD: c++1y
+  #   BOOST_VER: 1.69.0
+  #   TEST_CONFIGS: mssql17
+  #   INSTALL: clang-6.0 lld-6.0 libc++-dev libc++abi-dev
+
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+  #   COMPILER: g++-6 
+  #   TOOLSET: gcc-6
+  #   CPPSTD: c++11
+  #   BOOST_VER: 1.68.0
+  #   TEST_CONFIGS: mssql17
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+    COMPILER: g++-8 
+    TOOLSET: gcc-8
+    CPPSTD: c++14
+    BOOST_VER: 1.68.0
+    INSTALL: build-essential gcc-8-multilib odbc-postgresql
+    TEST_CONFIGS: mssql17
+
+for:
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+  services:
+    - mssql2008r2sp2
+    - postgresql101
+    - mysql
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  services:
+    - mssql2017
+    - postgresql101
+    - mysql
+
+services:
+  - mssql
+  - mysql
+
+install:
+  - cmd: |
+      call "%VCVARS%" %VCPLATFORM% 
+      cd %BOOST_ROOT% 
+      bootstrap.bat 
+  - cmd: >+
+      if not [%CODECOVE%]==[] (
+      set COVER_SRC="%APPVEYOR_BUILD_FOLDER%\odbcx" &
+      set CONFIG=opencppcoverage %CONFIG% &
+      choco install opencppcoverage codecov &
+      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources %APPVEYOR_BUILD_FOLDER% --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
+  - sh: |
+      alias appveyor-retry="sleep 45 &&"
+      sudo apt-get update && sudo apt-get install -y ${INSTALL}
+      if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  # - sh: |
+  #     ############################################################################
+  #     # Install libc++ and libc++abi if needed
+  #     ############################################################################
+  #     if [[ "${CXX%%+*}" == "clang" ]]; then
+  #       export TRAVIS_BUILD_DIR=${APPVEYOR_BUILD_FOLDER}
+  #       bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/lib++.install)
+  #       export B2FLAGS="${B2FLAGS} cxxflags=-isystem${APPVEYOR_BUILD_FOLDER}/llvm/out/include/c++/v1 linkflags=-L${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
+  #       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
+  #     fi
+  - sh: |
+      ############################################################################
+      # Download boost and build boost test and program_options
+      ############################################################################
+      cd ${APPVEYOR_BUILD_FOLDER}
+      bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/boost.install) toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi --layout=versioned --with-test --with-program_options -d0 stage debug
+      export BOOST_ROOT=${APPVEYOR_BUILD_FOLDER}/boost_${BOOST_VER//./_}    
+
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/project-config.jam > project-config.jam
+  - cmd: PATH=C:\Program Files\PostgreSQL\10\bin\;C:\Program Files\MySQL\MySQL Server 5.7\bin;%PATH%
+  - ps: Get-OdbcDriver -Platform 64-bit | Select-Object -ExpandProperty Name
+  - sh: odbcinst -j && cat /etc/odbcinst.ini
+build_script:
+  - appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
+  - mysql --user=root --password=Password12! < test/sql/mysql.sql
+  - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgress.sql
+  - cmd: |
+      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% testing.configs="%TEST_CONFIGS%" threading=multi -a %CONFIG%
+  - sh: |
+      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib testing.configs="${TEST_CONFIGS}" debug 
+on_success:
+  - cmd: |
+      if not [%CODECOVE%]==[] ("C:\ProgramData\chocolatey\lib\codecov\tools\codecov" -f "cobertura.xml" -t "4cd5b25e-4ca1-4bf0-ac42-92924658728a")
+on_failure:
+  - mysql --user=root --password=Password12! -e"select * from test.test_optional"
+  - cmd: psql -h localhost -U postgres -c "select * from test_optional;" -d test

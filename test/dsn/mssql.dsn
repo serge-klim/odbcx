@@ -1,0 +1,10 @@
+[ODBC]
+DRIVER=ODBC Driver 13 for SQL Server
+UID=sa
+PWD=Password12!
+TrustServerCertificate=No
+DATABASE=test
+Trusted_Connection=No
+SERVER=(local)
+Mars_connection=yes
+MultipleActiveResultSets=true

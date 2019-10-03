@@ -1,0 +1,59 @@
+import os ;
+import testing ;
+import path ;
+import modules ;
+import string ;
+import errors ;
+
+project tests ;
+
+alias odbc :
+			/odbcx//odbcx/<link>static
+			/user-config//odbc
+;
+
+
+rule run-tests ( name : sources * : args * : requirements * : usage-requirements * )
+{
+	local module_path = [ modules.binding $(__name__) ] ;
+	local here = [ path.join [ path.pwd ] $(module_path:D) ] ;
+
+	local configs = [ MATCH testing\.configs=(.*) : [ modules.peek : ARGV ] ] ;
+	configs ?= $(args) ;
+	configs ?= mssql ;
+
+	local targets  = [ exe $(name) : $(sources) : $(requirements) : $(usage-requirements) ] ;
+	targets += [ NOTFILE $(args) ] ;
+	for local config in [ string.words $(configs) ]
+	{
+		local dsn-path = [ path.join $(here) "dsn" ] ;
+		dsn-path = [ path.native [ path.join $(dsn-path) [ string.join $(config) ".dsn" ] ] ] ;
+		local dsn = [ string.join "FILEDSN=" $(dsn-path) ";" ] ;
+        if ! [ path.exists $(dsn-path) ]
+        {
+            errors.user-error "can't find dsn at " $(dsn-path) ;
+        }
+		#local r = <testing.arg>"-- -c\" $(dsn)\"" ;
+		local r = <testing.input-file>$(dsn-path) ;
+		#errors.user-error $(r) ;
+		targets += [ testing.make-test run : $(name) : $(r) : $(config) ] ;
+	}
+	return $(targets) ;
+}
+
+
+run-tests test :
+						 tests.cpp
+						 bindings_test.cpp
+						 select_statments_test.cpp
+						 simple_queries_test.cpp
+						 transactions_test.cpp
+						 ttraits_tests.cpp
+						 iterator_test.cpp
+						 select_optional_test.cpp
+						 /boost//unit_test_framework/<link>static
+						 /boost//program_options/<link>static
+						 odbc
+    ;
+
+compile-fail fail_select_stmt1_test.cpp odbc ;
