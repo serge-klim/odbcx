@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE DBStuffTests
+#define BOOST_TEST_MODULE odbcx_test_suite
 #include <boost/test/unit_test.hpp>
 #include "odbcx/utility.hpp"
 
