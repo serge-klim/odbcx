@@ -128,15 +128,18 @@ install:
   - ps: Get-OdbcDriver -Platform 64-bit | Select-Object -ExpandProperty Name
   - sh: odbcinst -j && cat /etc/odbcinst.ini
 build_script:
-  - sh: alias appveyor-retry="sleep 45 && "
-  - appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
+  - sh: sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
+  - cmd: appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
   - mysql --user=root --password=Password12! < test/sql/mysql.sql
   - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgress.sql
   - cmd: |
-      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% testing.configs="%TEST_CONFIGS%" threading=multi -a %CONFIG%
+      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi testing.configs="%TEST_CONFIGS%" testing.arg="--log_format=JUNIT --log_sink=unittests.xml" -a %CONFIG%
+      dir
   - sh: |
-      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib testing.configs="${TEST_CONFIGS}" debug 
+      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib testing.configs="${TEST_CONFIGS}" testing.arg="--log_format=JUNIT --log_sink=unittests.xml" debug
 on_success:
+  - sh: curl -F "file=@unittests.xml" "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
+  - cmd: curl -F "file=@unittests.xml" "https://ci.appveyor.com/api/testresults/junit/%APPVEYOR_JOB_ID%"
   - cmd: |
       if not [%CODECOVE%]==[] ("C:\ProgramData\chocolatey\lib\codecov\tools\codecov" -f "cobertura.xml" -t "4cd5b25e-4ca1-4bf0-ac42-92924658728a")
 on_failure:
