@@ -38,6 +38,23 @@ struct Bind<T, typename boost::mpl::or_<std::is_integral<T>, std::is_floating_po
 	}
 };
 
+template<typename T>
+struct Bind<T, boost::mpl::bool_<std::is_enum<T>::value>>
+{
+    using UnderlyingType = typename std::underlying_type<T>::type;
+
+    void operator()(handle::Stmt const & stmt, SQLUSMALLINT column, T const& data, SQLLEN& /*len*/)
+    {
+        odbcx::call(&SQLBindParameter, stmt, column, SQL_PARAM_INPUT, CType<UnderlyingType>::value, SQLType<UnderlyingType>::value, 
+            0, 0, const_cast<UnderlyingType*>(reinterpret_cast<UnderlyingType const*>(&data)), 0, nullptr);
+    }
+
+    void operator()(handle::Stmt const & stmt, SQLUSMALLINT column, std::nullptr_t, SQLLEN& length)
+    {
+        BindNull{}(stmt, column, CType<UnderlyingType>::value, SQLType<UnderlyingType>::value, length);
+    }
+};
+
 template<>
 struct Bind<SQL_TIMESTAMP_STRUCT, boost::mpl::true_>
 {
