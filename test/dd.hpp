@@ -31,7 +31,7 @@ struct TestOptional
 struct TestOptionalEnum
 {
     diversion::optional<int> id;
-    enum class Enum{v0, v5 = 5 ,v101 = 101};
+    enum class Enum{v0, v5 = 5, v101 = 101, v303 = 303};
     diversion::optional<Enum> n;
     std::vector<std::uint8_t> pb;
 };
