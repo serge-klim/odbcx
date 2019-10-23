@@ -96,14 +96,31 @@ struct Bind<T, typename boost::mpl::or_<std::is_integral<T>, std::is_floating_po
 	using ValueType = T;
 	ValueType construct(SQLLEN const* row) const
 	{
-		assert( *row == sizeof(T));
-		return SQL_NULL_DATA == *row ? 0 : *data_cast<T>(row);
+		assert( *row == sizeof(ValueType));
+		return SQL_NULL_DATA == *row ? 0 : *data_cast<ValueType>(row);
 	}
 	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
 
-	void copy2(SQLLEN const* row, ValueType& out) const {	out = SQL_NULL_DATA == *row ? 0 : *data_cast<T>(row); }
+	void copy2(SQLLEN const* row, ValueType& out) const {	out = SQL_NULL_DATA == *row ? 0 : *data_cast<ValueType>(row); }
 	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, ValueType& /*out*/) const { assert(!"unexpected call"); }
 };
+
+template<typename T>
+struct Bind<T, boost::mpl::bool_<std::is_enum<T>::value>> : Bind<typename std::underlying_type<T>::type> 
+{
+    using UnderlyingType =  typename std::underlying_type<T>::type;
+    using ValueType = T;
+    ValueType construct(SQLLEN const* row) const
+    {
+        assert(*row == sizeof(T));
+        return static_cast<ValueType>(SQL_NULL_DATA == *row ? 0 : *data_cast<UnderlyingType>(row));
+    }
+    ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+
+    void copy2(SQLLEN const* row, ValueType& out) const { out = static_cast<ValueType>( SQL_NULL_DATA == *row ? 0 : *data_cast<UnderlyingType>(row)); }
+    void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, ValueType& /*out*/) const { assert(!"unexpected call"); }
+};
+
 
 template<std::size_t N>
 struct Bind<char[N], boost::mpl::true_>

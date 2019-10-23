@@ -30,6 +30,17 @@ BOOST_AUTO_TEST_CASE(SelectStatementAsStaticBindTest)
 	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
 }
 
+BOOST_AUTO_TEST_CASE(SelectStatementWhereWithParamStaticBindTest)
+{
+	auto target = std::string{ "test" };
+	auto statement = odbcx::select<data::TestStatic>{}.from("test").where("target=?", target).exec(dbc);
+	auto recordset = statement.fetch();
+	BOOST_CHECK(!recordset.empty());
+	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
+	BOOST_CHECK_EQUAL(std::distance(begin(recordset), cend(recordset)), recordset.size());
+	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
+}
+
 BOOST_AUTO_TEST_CASE(SelectStatementAsWhereStaticBindTest)
 {
 	auto statement = odbcx::select<data::TestStatic>{}.from("test").as("alias").where("alias.target='test'").exec(dbc);
@@ -40,21 +51,10 @@ BOOST_AUTO_TEST_CASE(SelectStatementAsWhereStaticBindTest)
 	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
 }
 
-BOOST_AUTO_TEST_CASE(SelectStatementWhereWithParamStaticBindTest)
-{
-	auto test = std::string{ "test" };
-	auto statement = odbcx::select<data::TestStatic>{}.from("test").where("target=?", test).exec(dbc);
-	auto recordset = statement.fetch();
-	BOOST_CHECK(!recordset.empty());
-	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
-	BOOST_CHECK_EQUAL(std::distance(begin(recordset), cend(recordset)), recordset.size());
-	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
-}
-
 BOOST_AUTO_TEST_CASE(SelectStatementAsWhereWithParamStaticBindTest)
 {
-	auto test = std::string{ "test" };
-	auto statement = odbcx::select<data::TestStatic>{}.from("test").as("alias").where("alias.target=?", test).exec(dbc);
+	auto target = std::string{ "test" };
+	auto statement = odbcx::select<data::TestStatic>{}.from("test").as("alias").where("alias.target=?", target).exec(dbc);
 	auto recordset = statement.fetch();
 	BOOST_CHECK(!recordset.empty());
 	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
@@ -82,6 +82,17 @@ BOOST_AUTO_TEST_CASE(SelectStatementAsDynamicBindTest)
 	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
 }
 
+BOOST_AUTO_TEST_CASE(SelectStatementWhereWithParamDynamicBindTest)
+{
+	auto target = std::string{ "test" };
+	auto statement = odbcx::select<data::Test>{}.from("test").where("target=?", target).exec(dbc);
+	auto recordset = statement.fetch();
+	BOOST_CHECK(!recordset.empty());
+	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
+	BOOST_CHECK_EQUAL(std::distance(begin(recordset), cend(recordset)), recordset.size());
+	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
+}
+
 BOOST_AUTO_TEST_CASE(SelectStatementAsWhereDynamicBindTest)
 {
 	auto statement = odbcx::select<data::Test>{}.from("test").as("alias").where("alias.target='test'").exec(dbc);
@@ -92,21 +103,11 @@ BOOST_AUTO_TEST_CASE(SelectStatementAsWhereDynamicBindTest)
 	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
 }
 
-BOOST_AUTO_TEST_CASE(SelectStatementWhereWithParamDynamicBindTest)
-{
-	auto test = std::string{ "test" };
-	auto statement = odbcx::select<data::Test>{}.from("test").where("target=?", test).exec(dbc);
-	auto recordset = statement.fetch();
-	BOOST_CHECK(!recordset.empty());
-	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
-	BOOST_CHECK_EQUAL(std::distance(begin(recordset), cend(recordset)), recordset.size());
-	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
-}
 
 BOOST_AUTO_TEST_CASE(SelectStatementAsWhereWithParamDynamicBindTest)
 {
-	auto test = std::string{ "test" };
-	auto statement = odbcx::select<data::Test>{}.from("test").as("alias").where("alias.target=?", test).exec(dbc);
+	auto target = std::string{ "test" };
+	auto statement = odbcx::select<data::Test>{}.from("test").as("alias").where("alias.target=?", target).exec(dbc);
 	auto recordset = statement.fetch();
 	BOOST_CHECK(!recordset.empty());
 	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());

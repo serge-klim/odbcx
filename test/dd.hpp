@@ -27,6 +27,15 @@ struct TestOptional
 	std::vector<std::uint8_t> pb;
 };
 
+
+struct TestOptionalEnum
+{
+    diversion::optional<int> id;
+    enum class Enum{v0, v5 = 5, v101 = 101, v303 = 303};
+    diversion::optional<Enum> n;
+    std::vector<std::uint8_t> pb;
+};
+
 struct TestNoPB
 {
 	char target[100];
@@ -80,6 +89,13 @@ BOOST_FUSION_ADAPT_STRUCT(
 	ts,
 	target,
 	messagetype,
+	n,
+	pb
+	)
+
+BOOST_FUSION_ADAPT_STRUCT(
+	data::TestOptionalEnum,
+	id,
 	n,
 	pb
 	)

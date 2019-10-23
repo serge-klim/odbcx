@@ -31,14 +31,14 @@ struct OpFixture : Fixture
 			ts.fraction = 1000;
 
 			odbcx::query(dbc, "insert into test_optional (ts) values(?)", ts);
-			odbcx::query(dbc, "insert into test_optional (target) values('target')");
-			odbcx::query(dbc, "insert into test_optional (messagetype) values('messagetype')");
-			odbcx::query(dbc, "insert into test_optional (n) values(101)");
-
-			auto data = std::vector<std::uint8_t>(100 * 1024, 0xF);
-			odbcx::query(dbc, "insert into test_optional (pb) values(?)", data);
-
 		}
+
+        odbcx::query(dbc, "insert into test_optional (target) values('target')");
+        odbcx::query(dbc, "insert into test_optional (messagetype) values('messagetype')");
+        odbcx::query(dbc, "insert into test_optional (n) values(101)");
+        odbcx::query(dbc, "insert into test_optional (pb) values(?)", std::vector<std::uint8_t>(100 * 1024, 0xF));
+        odbcx::query(dbc, "insert into test_optional (n) values(?)", data::TestOptionalEnum::Enum::v5);
+        odbcx::query(dbc, "insert into test_optional (n, pb) values(?, ?)", data::TestOptionalEnum::Enum::v303, std::vector<std::uint8_t>{});
 	}
 };
 
@@ -46,14 +46,13 @@ BOOST_FIXTURE_TEST_SUITE(SelectOptionalTestSuite, OpFixture)
 
 BOOST_AUTO_TEST_CASE(SelectOptionalTest)
 {
-
 	auto val = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test_optional");
 	BOOST_CHECK_EQUAL(!val, false);
-	BOOST_CHECK_EQUAL(val.value(), 6);
+	BOOST_CHECK_EQUAL(val.value(), 8);
 
 	auto range = fetch_range(odbcx::select<data::TestOptional>{}.from("test_optional").order_by("id ASC").exec(dbc));
 	auto data = std::vector<data::TestOptional>{ range.begin(), range.end() };
-	BOOST_CHECK_EQUAL(data.size(), 6);
+	BOOST_CHECK_EQUAL(data.size(), 8);
 
 	BOOST_CHECK(!data[0].ts);
 	BOOST_CHECK(!data[0].target);
@@ -95,8 +94,60 @@ BOOST_AUTO_TEST_CASE(SelectOptionalTest)
 	BOOST_CHECK(!data[5].messagetype);
 	BOOST_CHECK(!data[5].n);
 	BOOST_CHECK_EQUAL(data[5].pb.empty(), false);
+
+    BOOST_CHECK(!data[6].ts);
+    BOOST_CHECK(!data[6].target);
+    BOOST_CHECK(!data[6].messagetype);
+    BOOST_CHECK_EQUAL(!data[6].n, false);
+    BOOST_CHECK(data[6].pb.empty());
+    BOOST_CHECK_EQUAL(data[6].n.value(), 5);
+
+    BOOST_CHECK(!data[7].ts);
+    BOOST_CHECK(!data[7].target);
+    BOOST_CHECK(!data[7].messagetype);
+    BOOST_CHECK_EQUAL(!data[7].n, false);
+    BOOST_CHECK(data[7].pb.empty());
+    BOOST_CHECK_EQUAL(data[7].n.value(), 303);
 }
 
+BOOST_AUTO_TEST_CASE(SelectOptionalEnum)
+{
+    auto val = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test_optional");
+    BOOST_CHECK_EQUAL(!val, false);
+    BOOST_CHECK_EQUAL(val.value(), 8);
+
+    auto range = fetch_range(odbcx::select<data::TestOptionalEnum>{}.from("test_optional").order_by("id ASC").exec(dbc));
+    auto data = std::vector<data::TestOptionalEnum>{ range.begin(), range.end() };
+    BOOST_CHECK_EQUAL(data.size(), 8);
+
+    BOOST_CHECK(!data[0].n);
+    BOOST_CHECK(data[0].pb.empty());
+
+    BOOST_CHECK(!data[1].n);
+    BOOST_CHECK(data[1].pb.empty());
+
+
+    BOOST_CHECK(!data[2].n);
+    BOOST_CHECK(data[2].pb.empty());
+
+    BOOST_CHECK(!data[3].n);
+    BOOST_CHECK(data[3].pb.empty());
+
+    BOOST_CHECK_EQUAL(!data[4].n, false);
+    BOOST_CHECK(data[4].pb.empty());
+    BOOST_CHECK(data[4].n.value() == data::TestOptionalEnum::Enum::v101);
+
+    BOOST_CHECK(!data[5].n);
+    BOOST_CHECK_EQUAL(data[5].pb.empty(), false);
+
+    BOOST_CHECK(data[6].pb.empty());
+    BOOST_CHECK_EQUAL(!data[6].n, false);
+    BOOST_CHECK(data[6].n.value() == data::TestOptionalEnum::Enum::v5);
+
+    BOOST_CHECK(data[7].pb.empty());
+    BOOST_CHECK_EQUAL(!data[7].n, false);
+    BOOST_CHECK(data[7].n.value() == data::TestOptionalEnum::Enum::v303);
+}
 
 
 BOOST_AUTO_TEST_SUITE_END()
