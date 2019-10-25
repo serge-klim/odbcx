@@ -62,6 +62,7 @@ BOOST_AUTO_TEST_CASE(SelectStatementAsWhereWithParamStaticBindTest)
 	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
 }
 
+
 BOOST_AUTO_TEST_CASE(SelectStatementDynamicBindTest)
 {
 	auto statement = odbcx::select<data::Test>{}.from("test").exec(dbc);
@@ -113,6 +114,16 @@ BOOST_AUTO_TEST_CASE(SelectStatementAsWhereWithParamDynamicBindTest)
 	BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
 	BOOST_CHECK_EQUAL(std::distance(begin(recordset), cend(recordset)), recordset.size());
 	BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
+}
+
+BOOST_AUTO_TEST_CASE(SelectStatementDynamicBindNotOptimalDataLayoutTest)
+{
+    auto statement = odbcx::select<data::TestNotOptimalDataLayout>{}.from("test").exec(dbc);
+    auto recordset = statement.fetch();
+    BOOST_CHECK(!recordset.empty());
+    BOOST_CHECK_EQUAL(std::distance(recordset.cbegin(), recordset.cend()), recordset.size());
+    BOOST_CHECK_EQUAL(std::distance(begin(recordset), cend(recordset)), recordset.size());
+    BOOST_CHECK_EQUAL(std::distance(cbegin(recordset), cend(recordset)), recordset.size());
 }
 
 

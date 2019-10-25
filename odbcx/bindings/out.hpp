@@ -14,6 +14,7 @@
 #include <boost/utility/string_view.hpp>
 #include <type_traits>
 #include <algorithm>
+#include <cstring>
 #include <cstdint>
 #include <string>
 
@@ -40,9 +41,9 @@ struct Bind<NoBind, boost::mpl::true_>
 	std::size_t dyn_column(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, std::size_t offset) { return offset; }
 	using ValueType = NoBind;
 	ValueType construct(SQLLEN const* row) const {	assert(*row == 0); return {};}
-	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { return {}; }
 	void copy2(SQLLEN const* /*row*/, NoBind& /*out*/) {}
-	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, NoBind& /*out*/) const { assert(!"unexpected call"); }
+	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, NoBind& out) const { out = construct(stmt, column); }
 };
 
 template<typename T>
@@ -74,10 +75,18 @@ struct Bind<SQL_TIMESTAMP_STRUCT, boost::mpl::true_>
 		assert(*row == SQL_NULL_DATA || *row == sizeof(SQL_TIMESTAMP_STRUCT));
 		return *row == SQL_NULL_DATA ? SQL_TIMESTAMP_STRUCT{ 0 } : *data_cast<SQL_TIMESTAMP_STRUCT>(row);
 	}
-	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+    
+	ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const 
+    { 
+        SQL_TIMESTAMP_STRUCT res{ 0 };
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, SQL_C_TYPE_TIMESTAMP, &res, sizeof(SQL_TIMESTAMP_STRUCT), &read) == SQL_NO_DATA)
+            throw std::runtime_error("SQLGetData can be called once only");
+        return res;
+    }
 
 	void copy2(SQLLEN const* row, SQL_TIMESTAMP_STRUCT& out) const { out = SQL_NULL_DATA == *row ? SQL_TIMESTAMP_STRUCT{0} : *data_cast<SQL_TIMESTAMP_STRUCT>(row); }
-	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, SQL_TIMESTAMP_STRUCT& /*out*/) const { assert(!"unexpected call"); }
+	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, SQL_TIMESTAMP_STRUCT& out) const { out = construct(stmt, column); }
 };
 
 template<typename T> 
@@ -94,15 +103,24 @@ struct Bind<T, typename boost::mpl::or_<std::is_integral<T>, std::is_floating_po
 	}
 
 	using ValueType = T;
+
 	ValueType construct(SQLLEN const* row) const
 	{
 		assert( *row == sizeof(ValueType));
 		return SQL_NULL_DATA == *row ? 0 : *data_cast<ValueType>(row);
 	}
-	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+
+    ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const
+    {
+        T res {0};
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, CType<T>::value, &res, CTypeSizeOf<T>::value, &read) == SQL_NO_DATA)
+            throw std::runtime_error("SQLGetData can be called once only");
+        return res;
+    }
 
 	void copy2(SQLLEN const* row, ValueType& out) const {	out = SQL_NULL_DATA == *row ? 0 : *data_cast<ValueType>(row); }
-	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, ValueType& /*out*/) const { assert(!"unexpected call"); }
+	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const { out = construct(stmt, column); }
 };
 
 template<typename T>
@@ -115,10 +133,17 @@ struct Bind<T, boost::mpl::bool_<std::is_enum<T>::value>> : Bind<typename std::u
         assert(*row == sizeof(T));
         return static_cast<ValueType>(SQL_NULL_DATA == *row ? 0 : *data_cast<UnderlyingType>(row));
     }
-    ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+    ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const
+    {
+        UnderlyingType res{ 0 };
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, CType<UnderlyingType>::value, &res, CTypeSizeOf<UnderlyingType>::value, &read) == SQL_NO_DATA)
+            throw std::runtime_error("SQLGetData can be called once only");
+        return static_cast<ValueType>(res);
+    }
 
     void copy2(SQLLEN const* row, ValueType& out) const { out = static_cast<ValueType>( SQL_NULL_DATA == *row ? 0 : *data_cast<UnderlyingType>(row)); }
-    void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, ValueType& /*out*/) const { assert(!"unexpected call"); }
+    void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const { out = construct(stmt, column); }
 };
 
 
@@ -143,7 +168,25 @@ struct Bind<char[N], boost::mpl::true_>
 		auto val = data_cast<char>(row);
 		return { val, std::size_t(*row) };
 	}
-	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+
+	ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const 
+    {
+        char out[N];
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, SQL_C_CHAR, out, N * sizeof(char), &read) == SQL_NO_DATA)
+            throw std::runtime_error("SQLGetData can be called once only");
+        switch (read)
+        {
+            case SQL_NO_TOTAL:
+                throw std::length_error{""};
+                break;
+            case SQL_NULL_DATA:
+                read = 0;
+                break;
+        }
+        assert(N >= std::size_t(read));
+        return ValueType{ out, std::size_t(read) };
+    }
 
 	void copy2(SQLLEN const* row, char(&out)[N]) const
 	{
@@ -152,14 +195,30 @@ struct Bind<char[N], boost::mpl::true_>
 		std::copy(begin, begin + size, out);
 		std::fill(out + size, out + N, '\0');
 	}
-	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, char(&/*out*/)[N]) const { assert(!"unexpected call"); }
+
+	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, char(&out)[N]) const 
+    { 
+        SQLLEN read = 0;
+        if(call(&SQLGetData, stmt, column, SQL_C_CHAR, out, N * sizeof(char), &read) == SQL_NO_DATA)
+            throw std::runtime_error("SQLGetData can be called once only");
+        switch (read)
+        {
+            case SQL_NO_TOTAL:
+                throw std::length_error{""};
+            case SQL_NULL_DATA:
+                read = 0;
+                //[[fallthrough]];
+            default:
+                assert(N >= std::size_t(read));
+                std::memset(out + read, 0, N - read);
+        }
+    }
 };
 
 template<std::size_t N>
 struct Bind<std::uint8_t[N], boost::mpl::true_>
 {
-	static constexpr std::size_t BinarySizeLimit = 8000;
-	using SQLType = typename std::conditional < BinarySizeLimit < N, std::integral_constant<SQLSMALLINT, SQL_LONGVARBINARY>, std::integral_constant<SQLSMALLINT, SQL_LONGVARBINARY> >::type;
+	using SQLType = typename std::conditional < details::BinarySizeLimit < N, std::integral_constant<SQLSMALLINT, SQL_LONGVARBINARY>, std::integral_constant<SQLSMALLINT, SQL_LONGVARBINARY> >::type;
 
 	void column(handle::Stmt const& stmt, SQLUSMALLINT column, SQLPOINTER data, SQLLEN* indicator)
 	{
@@ -179,7 +238,7 @@ struct Bind<std::uint8_t[N], boost::mpl::true_>
 		auto val = data_cast<std::uint8_t>(row);
 		return { val, val + std::size_t(*row) };
 	}
-	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { assert(!"unexpected call"); return {}; }
+	ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const { return read_data<std::uint8_t>(stmt, column, SQL_C_BINARY); }
 
 	void copy2(SQLLEN const* row, std::uint8_t (&out)[N]) const
 	{
@@ -188,7 +247,23 @@ struct Bind<std::uint8_t[N], boost::mpl::true_>
 		std::copy(begin, begin + size, out);
 		std::fill(out + size, out + N, 0);
 	}
-	void read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, std::uint8_t(&/*out*/)[N]) const { assert(!"unexpected call"); }
+	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, std::uint8_t(&out)[N])
+    {
+        SQLLEN read = 0;
+        if(call(&SQLGetData, stmt, column, SQL_C_BINARY, out, N * sizeof(std::uint8_t), &read) == SQL_NO_DATA)
+            throw std::runtime_error("SQLGetData can be called once only");
+        switch (read)
+        {
+            case SQL_NO_TOTAL:
+                throw std::length_error{""};
+            case SQL_NULL_DATA:
+                read = 0;
+                //[[fallthrough]];
+            default:
+                assert(N >= std::size_t(read));
+                std::memset(out + read, 0, N - read);
+        }
+    }
 };
 
 
@@ -421,12 +496,23 @@ public:
 
 	static DynamicBindings bind(handle::Stmt const& stmt)
 	{
+        using FirstDynamicallyBindable = typename boost::mpl::find_if<Sequence, boost::mpl::not_<StaticallyBindable<boost::mpl::placeholders::_1>>>::type;
+        using RestBindable = boost::mpl::iterator_range<FirstDynamicallyBindable, typename boost::mpl::end<Sequence>::type>;
+        using IsOrderOptimal = std::is_same<typename boost::mpl::find_if<RestBindable, StaticallyBindable<boost::mpl::placeholders::_1>>::type, typename boost::mpl::end<Sequence>::type>;
+        validate<Sequence>(IsOrderOptimal{});
 		Offsets offsets;
 		bind_<0>(stmt, 0, offsets);
 		if(!offsets.empty())
 			SQLSetStmtAttr(stmt, SQL_ATTR_ROW_BIND_TYPE, reinterpret_cast<SQLPOINTER>(offsets.back()), 0);
 		return { std::move(offsets) };
 	}
+
+    Sequence value(handle::Stmt const& stmt, char const* row) const
+    {
+        Sequence val;
+        init<0>(stmt, row, val);
+        return val;
+    }
 
 	template<std::size_t N>
 	using ValueType = typename DynamicBind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>::ValueType;
@@ -444,14 +530,13 @@ public:
 
 		return bind.construct(stmt, SQLUSMALLINT(N + 1));
 	}
-
-	Sequence value(handle::Stmt const& stmt, char const* row) const
-	{
-		Sequence val;
-		init<0>(stmt, row, val);
-		return val;
-	}
 private:
+    template<typename T>
+    inline static void validate(std::true_type) {}
+    template<typename T>
+    [[deprecated("for better performance please consider placing statically bindable fields like int, float, enums etc before dynamically bindable like std::string std::vector<> etc.")]]
+    inline static void validate(std::false_type) {}
+
 	template<std::size_t N>
 	static auto bind_(handle::Stmt const& stmt, std::size_t offset, Offsets& offsets) -> typename std::enable_if<boost::fusion::result_of::size<Sequence>::value != N, void>::type
 	{
