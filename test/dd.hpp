@@ -17,6 +17,15 @@ struct Test
 	std::vector<std::uint8_t> pb;
 };
 
+struct TestNotOptimalDataLayout
+{
+    std::string messagetype;
+    std::vector<std::uint8_t> pb;
+    int id;
+    SQL_TIMESTAMP_STRUCT ts;
+    char target[101];
+};
+
 struct TestOptional
 {
 	diversion::optional<int> id;
@@ -38,31 +47,31 @@ struct TestOptionalEnum
 
 struct TestNoPB
 {
-	char target[100];
+	char target[101];
 	std::vector<char> target1;
-	char messagetype[100];
+	char messagetype[101];
 	std::string messagetype1;
 };
 
 struct TestStatic
 {
-	char target[100];
-	char messagetype[100];
+	char target[101];
+	char messagetype[101];
 	std::uint8_t pb[1024 * 100];
 };
 
 struct TestStaticX
 {
-	char target[100];
-	char messagetype[100];
+	char target[101];
+	char messagetype[101];
 	std::uint8_t pb[1024 * 100];
 	long length;
 };
 
 struct TestPBHybrid
 {
-	char target[100];
-	char messagetype[100];
+	char target[101];
+	char messagetype[101];
 	std::uint8_t pb_s[1024 * 100];
 	std::vector<std::uint8_t> pb;
 };
@@ -81,6 +90,15 @@ BOOST_FUSION_ADAPT_STRUCT(
 	target,
 	messagetype,
 	pb
+	)
+
+BOOST_FUSION_ADAPT_STRUCT(
+	data::TestNotOptimalDataLayout,
+    messagetype,
+    pb,
+	id,
+	ts,
+	target
 	)
 
 BOOST_FUSION_ADAPT_STRUCT(

@@ -174,6 +174,50 @@ BOOST_AUTO_TEST_CASE(SelectStatementDynamicIteratorDerefTest)
 	}
 }
 
+BOOST_AUTO_TEST_CASE(SelectStatementDynamicIteratorDerefOnNotOptimalDataLayoutTest)
+{
+    auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test").value();
+    BOOST_CHECK_NE(n, 0);
+
+    auto range = fetch_range(odbcx::select<data::TestNotOptimalDataLayout>{}.from("test").exec(dbc));
+    BOOST_CHECK(range.begin() != range.end());
+    auto data = std::vector<data::TestNotOptimalDataLayout>{ range.begin(), range.end() };
+    BOOST_CHECK_EQUAL(data.size(), n);
+    {
+        auto range = fetch_range(odbcx::select<data::Test>{}.from("test").exec(dbc));
+        BOOST_CHECK(std::equal(range.begin(), range.end(), cbegin(data), cend(data), [](auto const& l, auto const& r)
+            {
+                return std::string{ cbegin(l.target), cend(l.target) } == std::string{ r.target }
+                    && l.messagetype == r.messagetype
+                    && std::equal(cbegin(l.pb), cend(l.pb), cbegin(r.pb), cend(r.pb))
+                    ;
+            }));
+    }
+}
+
+BOOST_AUTO_TEST_CASE(SelectStatementDynamicIteratorDerefOnNotOptimalDataLayoutAsTupleTest)
+{
+    auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test").value();
+    BOOST_CHECK_NE(n, 0);
+    enum class Enum {};
+    using NotOptimalDataLayout = std::tuple<std::string, std::vector<std::uint8_t>, int, Enum, SQL_TIMESTAMP_STRUCT>;
+    auto range = odbcx::fetch_range(odbcx::query<NotOptimalDataLayout>(dbc, "SELECT messagetype, pb, id, id, ts FROM test"));
+    BOOST_CHECK(range.begin() != range.end());
+    auto data = std::vector<NotOptimalDataLayout>{ range.begin(), range.end() };
+    BOOST_CHECK_EQUAL(data.size(), n);
+    {
+        auto range = fetch_range(odbcx::select<data::Test>{}.from("test").exec(dbc));
+        BOOST_CHECK(std::equal(range.begin(), range.end(), cbegin(data), cend(data), [](auto const& l, auto const& r)
+            {
+                return l.id == std::get<2>(r)
+                    && l.id == static_cast<int>(std::get<3>(r))
+                    && l.messagetype == std::get<0>(r)
+                    && std::equal(cbegin(l.pb), cend(l.pb), cbegin(std::get<1>(r)), cend(std::get<1>(r)))
+                    ;
+            }));
+    }
+}
+
 BOOST_AUTO_TEST_CASE(SelectStringIteratorDerefTest)
 {
 	auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test").value();
