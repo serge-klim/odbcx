@@ -1,5 +1,6 @@
 #pragma once
 #include "utility.hpp"
+#include <cassert>
 
 namespace odbcx { inline namespace v0 {
 
@@ -11,10 +12,7 @@ public:
 	ScopedTransaction(ScopedTransaction &&) = default;
 	ScopedTransaction& operator=(ScopedTransaction &&) = default;
 
-	ScopedTransaction(SQLHANDLE dbc) : dbc_{ dbc } 
-	{ 
-		begin_transaction(dbc_);
-	}
+	ScopedTransaction(SQLHANDLE dbc) : dbc_{ dbc } { begin_transaction(dbc_); }
 	ScopedTransaction(handle::Dbc const& dbc) : ScopedTransaction{ dbc.get() } {}
 	~ScopedTransaction() 
 	{

@@ -1,4 +1,5 @@
 #pragma once
+#include "details/query.hpp"
 #include <boost/fusion/include/std_tuple.hpp>
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/at_c.hpp>
@@ -44,15 +45,15 @@ handle::Stmt query(handle::Dbc const& dbc, std::string const& text, Params&& ...
 	return stmt;
 }
 
-
-template<typename Out/*typename ...Out*/>
-Statement<Out> query(handle::Stmt&& stmt, std::string const& text)
+template<typename ...Out>
+Statement<typename details::MakeSequence<Out...>::type> query(handle::Stmt&& stmt, std::string const& text)
 {
 	return { std::move(stmt), text };
 }
 
-template<typename Out/*typename ...Out*/, typename ...Params>
-Statement<Out> query(handle::Stmt&& stmt, std::string const& text, Params&& ...params)
+template<typename ...Out, typename ...Params>
+auto query(handle::Stmt&& stmt, std::string const& text, Params&& ...params)
+    -> typename std::enable_if<sizeof...(Out) != 0, Statement<typename details::MakeSequence<Out...>::type>>::type
 {
 	assert(std::count(cbegin(text), cend(text), '?') == sizeof...(params) && "hmm! seems parameters number mismatches placeholders!");
 	SQLLEN lengths[sizeof...(params)];
@@ -60,10 +61,11 @@ Statement<Out> query(handle::Stmt&& stmt, std::string const& text, Params&& ...p
 	return { std::move(stmt), text };
 }
 
-template<typename Out/*typename ...Out*/, typename ...Params>
-Statement<Out> query(handle::Dbc const& dbc, std::string const& text, Params&& ...params)
+template<typename ...Out, typename ...Params>
+auto query(handle::Dbc const& dbc, std::string const& text, Params&& ...params)
+    -> typename std::enable_if<sizeof...(Out) != 0, Statement<typename details::MakeSequence<Out...>::type>>::type
 {
-	return query<Out>(details::allocate_statement_handle(dbc), text,  std::forward<Params>(params)...);
+	return query<Out...>(details::allocate_statement_handle(dbc), text,  std::forward<Params>(params)...);
 }
 
 template<typename Out/*typename ...Out*/, typename Handle, typename ...Params>

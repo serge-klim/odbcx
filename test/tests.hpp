@@ -43,11 +43,12 @@ struct Fixture
 	Fixture() : dbc{ odbcx::handle::allocate<SQL_HANDLE_DBC>(Environment()) }
 	{
 		static auto gfixture = GlobalFixture{};
-		auto const& connection_string = gfixture.connection_string();
 		//BOOST_TEST_MESSAGE("connecting \"" << connection_string_.data() << "\" ...");
-		auto res = odbcx::call(&SQLDriverConnect, dbc, nullptr, 
-									reinterpret_cast<SQLCHAR*>(const_cast<char*>(connection_string.data())), SQLSMALLINT(connection_string.length()),
-									nullptr, 0, nullptr, SQL_DRIVER_NOPROMPT);
+        auto res = odbcx::connect(dbc, gfixture.connection_string());
+        //auto const& connection_string = gfixture.connection_string();
+		//auto res = odbcx::call(&SQLDriverConnect, dbc, nullptr, 
+		//							reinterpret_cast<SQLCHAR*>(const_cast<char*>(connection_string.data())), SQLSMALLINT(connection_string.length()),
+		//							nullptr, 0, nullptr, SQL_DRIVER_NOPROMPT);
 		//BOOST_CHECK_NE(res, SQL_NO_DATA);
 		assert(res != SQL_NO_DATA);
 	}
