@@ -1,0 +1,6 @@
+
+exe select :
+          main.cpp
+		  /odbcx//odbcx/<link>static
+          : <library>/boost//headers
+          ;

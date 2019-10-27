@@ -2,6 +2,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif // _WIN32
+#include "details/diversion.hpp"
 #include <sql.h> 
 #include <sqlext.h>
 #include <cassert>
@@ -91,6 +92,21 @@ namespace odbcx { inline namespace v0 {
         return details::IfFailedThrow<T>((*f)(h.get(), std::forward<Args>(args)...), h.get());
     }
 
+    inline SQLRETURN connect(handle::Dbc const& dbc, diversion::string_view constring, SQLUSMALLINT driver_completion = SQL_DRIVER_NOPROMPT)
+    {
+        return odbcx::call(&SQLDriverConnect, dbc, nullptr, reinterpret_cast<SQLCHAR*>(const_cast<char*>(constring.data())), SQLSMALLINT(constring.size()), nullptr, 0, nullptr, driver_completion);
+    }
+    
+    inline SQLRETURN SQLSetEnvAttr(handle::Env const& env, SQLINTEGER Attribute, SQLPOINTER Value, SQLINTEGER StringLength)
+    {
+        return odbcx::call(&::SQLSetEnvAttr, env, Attribute, Value, StringLength);
+    }
+
+    inline SQLRETURN SQLSetEnvAttr(handle::Env const& env, SQLINTEGER Attribute, int value)
+    {
+        return SQLSetEnvAttr(env, Attribute, SQLPOINTER(value), 0);
+    }
+
 	inline SQLRETURN SQLSetStmtAttr(SQLHSTMT sqlstmt, SQLINTEGER attribute, SQLPOINTER value, SQLINTEGER string_length = 0)
 	{
 		return details::IfFailedThrow(::SQLSetStmtAttr(sqlstmt, attribute, value, string_length), sqlstmt, SQL_HANDLE_STMT);
@@ -143,7 +159,7 @@ namespace odbcx { inline namespace v0 {
 				if (read != SQLLEN(chunk_size))
 				{
 					assert(read < SQLLEN(chunk_size));
-					assert((read = 0) && "emulating SQLGetData(...) == SQL_NO_DATA and read == 0 to pass next assert");
+					assert(((read = 0), "emulating SQLGetData(...) == SQL_NO_DATA and read == 0 to pass next assert"));
 					break;
 				}
 				buffer.resize(total + chunk_size);
