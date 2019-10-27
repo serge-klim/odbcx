@@ -114,7 +114,7 @@ install:
     export BOOST_ROOT=${TRAVIS_BUILD_DIR}/boost_${BOOST_VER//./_}    
 before_script:
   - odbcinst -j && cat /etc/odbcinst.ini
-  - psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgress.sql
+  - psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgres.sql
   - |
     if [[ "${COVERAGE}" == "ON" ]]; then
       export B2FLAGS="${B2FLAGS} cxxflags=\"-fprofile-instr-generate\" cxxflags=\"-fcoverage-mapping\" linkflags=\"-fprofile-instr-generate\""

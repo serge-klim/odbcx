@@ -131,7 +131,7 @@ build_script:
   - sh: sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
   - cmd: appveyor-retry sqlcmd -S localhost -U SA -P Password12! -i test/sql/mssql.sql -d "master"
   - mysql --user=root --password=Password12! < test/sql/mysql.sql
-  - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgress.sql
+  - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;" && psql -h localhost -U postgres -d test -f test/sql/postgres.sql
   - cmd: |
       "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi testing.configs="%TEST_CONFIGS%" testing.arg="--log_format=JUNIT --log_sink=unittests.xml" -a %CONFIG%
       dir
