@@ -100,8 +100,11 @@ public:
 	using ExecResult = typename PrevLayer::ExecResult;
 	using Alias = std::pair<std::string::size_type, std::string::size_type>;
 
-	SelectQuery(PrevLayer&& prev_layer, Alias&& alias, std::string tail, InputParams&& params = std::tuple<>{})
-		: prev_layer_{ std::move(prev_layer) }, tail_{ std::move(tail) }, alias_{ std::move(alias) }, params_{std::move(params)}{}
+	SelectQuery(PrevLayer&& prev_layer, Alias&& alias, std::string tail)
+		: prev_layer_{ std::forward<PrevLayer>(prev_layer) }, tail_{ std::move(tail) }, alias_{ std::forward<Alias>(alias) }{}
+
+	SelectQuery(PrevLayer&& prev_layer, Alias&& alias, std::string tail, InputParams&& params)
+		: prev_layer_{ std::forward<PrevLayer>(prev_layer) }, tail_{ std::move(tail) }, alias_{ std::forward<Alias>(alias) }, params_{ std::forward<InputParams>(params) }{}
 
 	SelectQuery<PrevLayer, InputParams, SelectClause::As> as(std::string const& alias) &&
 	{
@@ -120,7 +123,7 @@ public:
 
 	template<typename ...Params>
 	auto where(std::string const& condition, Params&& ...params) &&
-		-> SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::Where >
+		-> SelectQuery<PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::forward_as_tuple(std::forward<Params>(params)...))), SelectClause::Where>
 	{
 		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::Where, "SQL statement can't have more than one where clauses");
@@ -133,7 +136,7 @@ public:
 
 	template<typename ...Params>
 	auto group_by(std::string const& condition, Params&& ...params) &&
-		->SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::GroupBy >
+		->SelectQuery<PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple<Params const&...>{std::forward<Params>(params)...})), SelectClause::GroupBy >
 	{
 		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::GroupBy, "SQL statement can't have more than one group by clauses");
@@ -145,7 +148,7 @@ public:
 
 	template<typename ...Params>
 	auto having(std::string const& condition, Params&& ...params) &&
-		->SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::Having >
+		->SelectQuery<PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple<Params const&...>{std::forward<Params>(params)...})), SelectClause::Having >
 	{
 		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::Having, "SQL statement can't have more than one having clauses");
@@ -156,12 +159,12 @@ public:
 
 	template<typename ...Params>
 	auto order_by(std::string const& condition, Params&& ...params) &&
-		->SelectQuery < PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::tuple <Params const&...>{std::forward<Params>(params)...})), SelectClause::OrderBy >
+		->SelectQuery<PrevLayer, decltype(std::tuple_cat(std::declval<InputParams>(), std::forward_as_tuple(std::forward<Params>(params)...))), SelectClause::OrderBy >
 	{
 		static_assert(details::in::InputParametersVerify<Params...>::value, "input parameter can't be temporary!");
 		static_assert(Clause != SelectClause::OrderBy, "SQL statement can't have more than one order by clauses");
 		static_assert(!(Clause > SelectClause::OrderBy), "Oops! just wrong");
-		return make_result<SelectClause::OrderBy>(std::move(prev_layer_), std::move(alias_), std::move(tail_), " ORDER BY " + condition, std::move(params_), std::forward<Params>(params)...);
+		return make_result<SelectClause::OrderBy>(std::move(prev_layer_), std::move(alias_), std::move(tail_), " ORDER BY " + condition, std::move(params_) , std::forward<Params>(params)...);
 	}
 
 	template<typename DBHandle>
@@ -171,11 +174,12 @@ public:
 	}
 private:
 	template<SelectClause NextLayer, typename ...Params1, typename ...Params2>
-	static auto make_result(PrevLayer&& prev_layer, Alias&& alias, std::string&& tail, std::string&& clause, std::tuple<Params1 const&...>&& params1, Params2&& ...params2)
-		->SelectQuery < PrevLayer, decltype(std::tuple_cat(/*std::declval<InputParams>()*/std::move(params1), std::tuple<Params2 const&...>{std::forward<Params2>(params2)...})), NextLayer >
+	static auto make_result(PrevLayer&& prev_layer, Alias&& alias, std::string&& tail, std::string&& clause, std::tuple<Params1...>&& params1, Params2&& ...params2)
+		->SelectQuery<PrevLayer, decltype(std::tuple_cat(std::forward<std::tuple<Params1...>>(params1), std::forward_as_tuple(std::forward<Params2>(params2)...))), NextLayer>
 	{
 		static_assert(details::in::InputParametersVerify<Params2...>::value, "input parameter can't be temporary!");
-		return { std::move(prev_layer), std::move(alias), std::move(tail) + std::move(clause), std::tuple_cat(std::move(params1), std::tuple<Params2 const&...>{std::forward<Params2>(params2)...}) };
+		return { std::forward<PrevLayer>(prev_layer), std::forward<Alias>(alias), std::forward<std::string>(tail) + std::forward<std::string>(clause), 
+																	std::tuple_cat(std::forward<std::tuple<Params1...>>(params1), std::forward_as_tuple(std::forward<Params2>(params2)...)) };
 	}
 
 	template<typename DBHandle, typename ...Params>
