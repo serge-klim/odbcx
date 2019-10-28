@@ -30,15 +30,15 @@ BOOST_FUSION_ADAPT_STRUCT(
     pb
 )
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-	try
-	{
-		if (argc == 1)
-		{
-			std::cerr << "please specify connection string or DSN" << std::endl;
-			return 1;
-		}
+    try
+    {
+        if (argc == 1)
+        {
+            std::cerr << "please specify connection string or DSN" << std::endl;
+            return 1;
+        }
 
         auto env = odbcx::handle::allocate<SQL_HANDLE_ENV>();
         odbcx::SQLSetEnvAttr(env, SQL_ATTR_ODBC_VERSION, SQL_OV_ODBC3_80);
@@ -73,23 +73,23 @@ int main(int argc, char *argv[])
             auto const& blob = std::get<std::vector<std::uint8_t>>(rec);
         }
 
-		auto range1 = fetch_range(odbcx::select<data::Test>{}.from("test").where("target=?", type1).exec(dbc));
-		auto range2 = fetch_range(odbcx::select<data::Test>{}.from("test").where("target=?", type1).order_by("id ASC").exec(dbc));
-		auto range3 = fetch_range(odbcx::select<data::Test>{}.from("test").as("alias").where("alias.target='test'").order_by("id ASC").exec(dbc));
+        auto range1 = fetch_range(odbcx::select<data::Test>{}.from("test").where("messagetype=?", type1).exec(dbc));
+        assert(std::distance(range1.begin(), range1.end()) == 3);
+        auto range2 = fetch_range(odbcx::select<data::Test>{}.from("test").where("messagetype=?", type1).order_by("id ASC").exec(dbc));
+        assert(std::distance(range2.begin(), range2.end()) == 3);
+        auto range3 = fetch_range(odbcx::select<data::Test>{}.from("test").as("alias").where("alias.messagetype='test'").order_by("id ASC").exec(dbc));
+        for (auto const& rec : range3)
+        {
+        }
 
-		for (auto const& rec : range3)
-		{
-		}
-
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << "error : " << e.what() << std::endl;
-	}
-	catch (...)
-	{
-		std::cerr << "miserable failure" << std::endl;
-	}
-
-	return 0;
+    }
+    catch (std::exception & e)
+    {
+        std::cerr << "error : " << e.what() << std::endl;
+    }
+    catch (...)
+    {
+        std::cerr << "miserable failure" << std::endl;
+    }
+    return 0;
 }

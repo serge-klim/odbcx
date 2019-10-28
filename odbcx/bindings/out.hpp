@@ -1,3 +1,5 @@
+// Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
+
 #pragma once
 #include "ttraits.hpp"
 #include "odbcx/details/diversion.hpp"

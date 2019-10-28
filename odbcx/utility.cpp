@@ -1,3 +1,5 @@
+// Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
+
 #include <cstdint>
 #include <stdexcept>
 #include <iostream>

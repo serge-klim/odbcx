@@ -1,3 +1,5 @@
+// Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
+
 #pragma once
 #include "details/query.hpp"
 #include <boost/fusion/include/std_tuple.hpp>

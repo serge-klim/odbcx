@@ -1,3 +1,5 @@
+// Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
+
 #pragma once
 #include "details/statement.hpp"
 #include <boost/iterator/iterator_facade.hpp>
