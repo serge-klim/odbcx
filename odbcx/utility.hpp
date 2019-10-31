@@ -139,45 +139,45 @@ namespace odbcx { inline namespace v0 {
 
 
 	template<typename T>
-	std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALLINT type)
+	std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALLINT type, SQLLEN& len)
 	{
+        len = SQL_NULL_DATA;
 		std::size_t chunk_size = 1024;
 		auto buffer = std::vector<T>(chunk_size);
 		SQLLEN read = 0;
 		//https://docs.microsoft.com/en-us/sql/odbc/reference/develop-app/getting-long-data?view=sql-server-2017
 		if (call(&SQLGetData, stmt, column, type, buffer.data(), buffer.size() * sizeof(T), &read) == SQL_NO_DATA)
-			throw std::runtime_error("SQLGetData can be called once only");
-		if (read == SQL_NULL_DATA)
-			return {};
-
-		std::size_t total = 0;
+            throw std::runtime_error{ "SQLGetData can be called once only" };
+        if (read == SQL_NULL_DATA)
+            return {};
+        len = 0;
 		if (read == SQL_NO_TOTAL || std::size_t(read) == chunk_size)
 		{
 			//well have to read it chunk by chunk:(
 			do {
 				if (read == SQL_NO_TOTAL)
-					read = chunk_size;
-				total += read;
+					read = SQLLEN(chunk_size);
+				len += read;
 				if (read != SQLLEN(chunk_size))
 				{
 					assert(read < SQLLEN(chunk_size));
 					assert(((read = 0), "emulating SQLGetData(...) == SQL_NO_DATA and read == 0 to pass next assert"));
 					break;
 				}
-				buffer.resize(total + chunk_size);
+				buffer.resize(len + chunk_size);
 				read = 0;
-			} while (call(&SQLGetData, stmt, column, type, buffer.data() + total / sizeof(T), buffer.size() * sizeof(T) - total, &read) != SQL_NO_DATA);
+			} while (call(&SQLGetData, stmt, column, type, buffer.data() + len / sizeof(T), buffer.size() * sizeof(T) - len, &read) != SQL_NO_DATA);
 			assert(read == 0);
 		}
 		else
 		{
-			total = std::size_t(read);
+			len = std::size_t(read);
 			if (read > SQLLEN(chunk_size)) // driver just returns size of data, so read it one go
 			{
-				buffer.resize(total / sizeof(T));
+				buffer.resize(len / sizeof(T));
 				read = 0;
 				call(&SQLGetData, stmt, column, type, buffer.data() + chunk_size / sizeof(T), buffer.size() * sizeof(T) - chunk_size, &read);
-				assert(read + chunk_size == total);
+				assert(read + chunk_size == len);
 			}
 			else
 			{
@@ -185,7 +185,14 @@ namespace odbcx { inline namespace v0 {
 				assert(read > 0 && read < SQLLEN(chunk_size));
 			}
 		}
-		buffer.resize(total / sizeof(T));
+		buffer.resize(len / sizeof(T));
 		return buffer;
 	}
+
+    template<typename T>
+    std::vector<T> read_data(handle::Stmt const& stmt, SQLUSMALLINT column, SQLSMALLINT type)
+    {
+        SQLLEN len = 0;
+        return read_data<T>(stmt, column, type, len);
+    }
 }/*inline namespace v0*/} //namespace odbcx

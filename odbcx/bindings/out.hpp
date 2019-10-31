@@ -45,7 +45,7 @@ struct Bind<NoBind, boost::mpl::true_>
 	ValueType construct(SQLLEN const* row) const {	assert(*row == 0); return {};}
 	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const { return {}; }
 	void copy2(SQLLEN const* /*row*/, NoBind& /*out*/) {}
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, NoBind& out) const { out = construct(stmt, column); }
+    SQLLEN read2(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/, NoBind& /*out*/) const { return SQL_NULL_DATA; }
 };
 
 template<typename T>
@@ -81,14 +81,18 @@ struct Bind<SQL_TIMESTAMP_STRUCT, boost::mpl::true_>
 	ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const 
     { 
         SQL_TIMESTAMP_STRUCT res{ 0 };
-        SQLLEN read = 0;
-        if (call(&SQLGetData, stmt, column, SQL_C_TYPE_TIMESTAMP, &res, sizeof(SQL_TIMESTAMP_STRUCT), &read) == SQL_NO_DATA)
-            throw std::runtime_error("SQLGetData can be called once only");
+        read2(stmt, column, res);
         return res;
     }
 
 	void copy2(SQLLEN const* row, SQL_TIMESTAMP_STRUCT& out) const { out = SQL_NULL_DATA == *row ? SQL_TIMESTAMP_STRUCT{0} : *data_cast<SQL_TIMESTAMP_STRUCT>(row); }
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, SQL_TIMESTAMP_STRUCT& out) const { out = construct(stmt, column); }
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, SQL_TIMESTAMP_STRUCT& out) const
+    { 
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, SQL_C_TYPE_TIMESTAMP, &out, sizeof(SQL_TIMESTAMP_STRUCT), &read) == SQL_NO_DATA)
+            throw std::runtime_error{ "SQLGetData can be called once only" };
+        return read;
+    }
 };
 
 template<typename T> 
@@ -115,14 +119,18 @@ struct Bind<T, typename boost::mpl::or_<std::is_integral<T>, std::is_floating_po
     ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const
     {
         T res {0};
-        SQLLEN read = 0;
-        if (call(&SQLGetData, stmt, column, CType<T>::value, &res, CTypeSizeOf<T>::value, &read) == SQL_NO_DATA)
-            throw std::runtime_error("SQLGetData can be called once only");
+        read2(stmt, column, res);
         return res;
     }
 
 	void copy2(SQLLEN const* row, ValueType& out) const {	out = SQL_NULL_DATA == *row ? 0 : *data_cast<ValueType>(row); }
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const { out = construct(stmt, column); }
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const 
+    { 
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, CType<T>::value, &out, CTypeSizeOf<T>::value, &read) == SQL_NO_DATA)
+            throw std::runtime_error{ "SQLGetData can be called once only" };
+        return read;
+    }
 };
 
 template<typename T>
@@ -138,14 +146,18 @@ struct Bind<T, boost::mpl::bool_<std::is_enum<T>::value>> : Bind<typename std::u
     ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const
     {
         UnderlyingType res{ 0 };
-        SQLLEN read = 0;
-        if (call(&SQLGetData, stmt, column, CType<UnderlyingType>::value, &res, CTypeSizeOf<UnderlyingType>::value, &read) == SQL_NO_DATA)
-            throw std::runtime_error("SQLGetData can be called once only");
+        read2(stmt, column, res);
         return static_cast<ValueType>(res);
     }
 
     void copy2(SQLLEN const* row, ValueType& out) const { out = static_cast<ValueType>( SQL_NULL_DATA == *row ? 0 : *data_cast<UnderlyingType>(row)); }
-    void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const { out = construct(stmt, column); }
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const
+    { 
+        SQLLEN read = 0;
+        if (call(&SQLGetData, stmt, column, CType<UnderlyingType>::value, &out, CTypeSizeOf<UnderlyingType>::value, &read) == SQL_NO_DATA)
+            throw std::runtime_error{ "SQLGetData can be called once only" };
+        return read;
+    }
 };
 
 
@@ -174,20 +186,8 @@ struct Bind<char[N], boost::mpl::true_>
 	ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const 
     {
         char out[N];
-        SQLLEN read = 0;
-        if (call(&SQLGetData, stmt, column, SQL_C_CHAR, out, N * sizeof(char), &read) == SQL_NO_DATA)
-            throw std::runtime_error("SQLGetData can be called once only");
-        switch (read)
-        {
-            case SQL_NO_TOTAL:
-                throw std::length_error{""};
-                break;
-            case SQL_NULL_DATA:
-                read = 0;
-                break;
-        }
-        assert(N >= std::size_t(read));
-        return ValueType{ out, std::size_t(read) };
+        auto size = read2(stmt, column, out);
+        return SQL_NULL_DATA == size ? ValueType{} : ValueType{ out, std::size_t(size) };
     }
 
 	void copy2(SQLLEN const* row, char(&out)[N]) const
@@ -198,22 +198,23 @@ struct Bind<char[N], boost::mpl::true_>
 		std::fill(out + size, out + N, '\0');
 	}
 
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, char(&out)[N]) const 
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, char(&out)[N]) const
     { 
         SQLLEN read = 0;
         if(call(&SQLGetData, stmt, column, SQL_C_CHAR, out, N * sizeof(char), &read) == SQL_NO_DATA)
-            throw std::runtime_error("SQLGetData can be called once only");
+            throw std::runtime_error{ "SQLGetData can be called once only" };
+        auto n = N - read;
         switch (read)
         {
             case SQL_NO_TOTAL:
                 throw std::length_error{""};
             case SQL_NULL_DATA:
-                read = 0;
+                n = N;
                 //[[fallthrough]];
             default:
-                assert(N >= std::size_t(read));
-                std::memset(out + read, 0, N - read);
+                std::memset(out + read, 0, n);
         }
+        return read;
     }
 };
 
@@ -249,22 +250,23 @@ struct Bind<std::uint8_t[N], boost::mpl::true_>
 		std::copy(begin, begin + size, out);
 		std::fill(out + size, out + N, 0);
 	}
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, std::uint8_t(&out)[N])
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, std::uint8_t(&out)[N])
     {
         SQLLEN read = 0;
         if(call(&SQLGetData, stmt, column, SQL_C_BINARY, out, N * sizeof(std::uint8_t), &read) == SQL_NO_DATA)
-            throw std::runtime_error("SQLGetData can be called once only");
+            throw std::runtime_error{ "SQLGetData can be called once only" };
+        auto n = N - read;
         switch (read)
         {
             case SQL_NO_TOTAL:
                 throw std::length_error{""};
             case SQL_NULL_DATA:
-                read = 0;
+                n = N;
                 //[[fallthrough]];
             default:
-                assert(N >= std::size_t(read));
-                std::memset(out + read, 0, N - read);
+                std::memset(out + read, 0, n);
         }
+        return read;
     }
 };
 
@@ -374,9 +376,12 @@ struct DynamicBind<std::basic_string<T>, boost::mpl::true_>
 		}
 	}
 
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, ValueType& out) const
 	{
-		out = construct(stmt, column);
+        SQLLEN size = 0;
+		auto buffer = read_data<T>(stmt, column, SQL_CHAR, size);
+        out.assign(cbegin(buffer), cend(buffer));
+        return size;
 	}
 };
 
@@ -404,9 +409,11 @@ struct DynamicBindVector
 		}
 	}
 
-	void read2(handle::Stmt const& stmt, SQLUSMALLINT column, std::vector<T>& out) const
+    SQLLEN read2(handle::Stmt const& stmt, SQLUSMALLINT column, std::vector<T>& out) const
 	{
-		out = read_data<T>(stmt, column, SQL_C_BINARY);
+        SQLLEN size = 0;
+		out = read_data<T>(stmt, column, SQL_C_BINARY, size);
+        return size;
 	}
 };
 
@@ -444,11 +451,11 @@ struct DynamicBind<diversion::optional<T>, boost::mpl::bool_<DynamicallyBindable
 		return begin == SQL_NULL_DATA ?  diversion::nullopt : diversion::make_optional(Base::construct(row));
 	}
 
-	ValueType construct(handle::Stmt const& /*stmt*/, SQLUSMALLINT /*column*/) const
+	ValueType construct(handle::Stmt const& stmt, SQLUSMALLINT column) const
 	{
-#pragma message("revisit it!!!!!!!!!!!!!!")
-		assert("not implemented yet!!!");
-		return diversion::nullopt;
+        T value;
+        auto size = Base::read2(stmt, column, value);
+		return SQL_NULL_DATA == size ? diversion::nullopt : diversion::make_optional(std::move(value));
 	}
 
 	void copy2(SQLLEN const* row, ValueType& out) const
