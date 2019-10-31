@@ -1,3 +1,5 @@
+// Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
+
 #pragma once
 #ifdef _WIN32
 #include <windows.h>
