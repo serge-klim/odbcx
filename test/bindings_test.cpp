@@ -2,7 +2,7 @@
 #include "tests.hpp"
 #include "dd.hpp"
 #include "odbcx/odbcx.hpp"
-#include "odbcx/bindings/out.hpp"
+#include "odbcx/bindings/columns.hpp"
 #include "odbcx/details/statement.hpp"
 #include "odbcx/query.hpp"
 #include <boost/core/ignore_unused.hpp>
@@ -11,8 +11,8 @@ BOOST_FIXTURE_TEST_SUITE(BindingsTestSuite, Fixture)
 
 BOOST_AUTO_TEST_CASE(StaticBindingsTest)
 {
-	static_assert(odbcx::details::out::IsSequenceStaticallyBindable<data::TestStatic>::value, "Oops! should be staticaly bindable");
-	static_assert(odbcx::details::out::IsSequenceDynamicallyBindable<data::TestStatic>::value, "Oops! should be dynamically bindable");
+	static_assert(odbcx::details::columns::IsSequenceStaticallyBindable<data::TestStatic>::value, "Oops! should be staticaly bindable");
+	static_assert(odbcx::details::columns::IsSequenceDynamicallyBindable<data::TestStatic>::value, "Oops! should be dynamically bindable");
 
 	auto stmt = odbcx::handle::allocate<SQL_HANDLE_STMT>(dbc);
 	//	odbcx::SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, SQLPOINTER(SQL_CURSOR_KEYSET_DRIVEN), SQL_IS_INTEGER);
@@ -80,8 +80,8 @@ BOOST_AUTO_TEST_CASE(StaticBindingsFetchOneTest)
 
 BOOST_AUTO_TEST_CASE(BindingsTest)
 {
-	static_assert(!odbcx::details::out::IsSequenceStaticallyBindable<data::Test>::value, "Oops! should be staticaly bindable");
-	static_assert(odbcx::details::out::IsSequenceDynamicallyBindable<data::Test>::value, "Oops! should be dynamically bindable");
+	static_assert(!odbcx::details::columns::IsSequenceStaticallyBindable<data::Test>::value, "Oops! should be staticaly bindable");
+	static_assert(odbcx::details::columns::IsSequenceDynamicallyBindable<data::Test>::value, "Oops! should be dynamically bindable");
 
 	auto stmt = odbcx::handle::allocate<SQL_HANDLE_STMT>(dbc);
 	//	odbcx::SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, SQLPOINTER(SQL_CURSOR_KEYSET_DRIVEN), SQL_IS_INTEGER);
@@ -193,8 +193,8 @@ BOOST_AUTO_TEST_CASE(BindingsFetchOneQueryTest)
 
 BOOST_AUTO_TEST_CASE(TestNoPBBindingsTest)
 {
-	static_assert(!odbcx::details::out::IsSequenceStaticallyBindable<data::TestNoPB>::value, "Oops! shouldn't be staticaly bindable");
-	static_assert(odbcx::details::out::IsSequenceDynamicallyBindable<data::TestNoPB>::value, "Oops! should be dynamically bindable");
+	static_assert(!odbcx::details::columns::IsSequenceStaticallyBindable<data::TestNoPB>::value, "Oops! shouldn't be staticaly bindable");
+	static_assert(odbcx::details::columns::IsSequenceDynamicallyBindable<data::TestNoPB>::value, "Oops! should be dynamically bindable");
 
 	auto stmt = odbcx::handle::allocate<SQL_HANDLE_STMT>(dbc);
 	//	odbcx::SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, SQLPOINTER(SQL_CURSOR_KEYSET_DRIVEN), SQL_IS_INTEGER);
@@ -219,8 +219,8 @@ BOOST_AUTO_TEST_CASE(TestNoPBBindingsTest)
 
 BOOST_AUTO_TEST_CASE(PBHybridBindingsTest)
 {
-	static_assert(!odbcx::details::out::IsSequenceStaticallyBindable<data::TestPBHybrid>::value, "Oops! should be staticaly bindable");
-	static_assert(odbcx::details::out::IsSequenceDynamicallyBindable<data::TestPBHybrid>::value, "Oops! should be dynamically bindable");
+	static_assert(!odbcx::details::columns::IsSequenceStaticallyBindable<data::TestPBHybrid>::value, "Oops! should be staticaly bindable");
+	static_assert(odbcx::details::columns::IsSequenceDynamicallyBindable<data::TestPBHybrid>::value, "Oops! should be dynamically bindable");
 
 	auto stmt = odbcx::handle::allocate<SQL_HANDLE_STMT>(dbc);
 	//	odbcx::SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, SQLPOINTER(SQL_CURSOR_KEYSET_DRIVEN), SQL_IS_INTEGER);
@@ -244,8 +244,8 @@ BOOST_AUTO_TEST_CASE(PBHybridBindingsTest)
 
 BOOST_AUTO_TEST_CASE(PBHybridBindings1Test)
 {
-	static_assert(!odbcx::details::out::IsSequenceStaticallyBindable<data::TestPBHybrid>::value, "Oops! should be staticaly bindable");
-	static_assert(odbcx::details::out::IsSequenceDynamicallyBindable<data::TestPBHybrid>::value, "Oops! should be dynamically bindable");
+	static_assert(!odbcx::details::columns::IsSequenceStaticallyBindable<data::TestPBHybrid>::value, "Oops! should be staticaly bindable");
+	static_assert(odbcx::details::columns::IsSequenceDynamicallyBindable<data::TestPBHybrid>::value, "Oops! should be dynamically bindable");
 
 	auto stmt = odbcx::handle::allocate<SQL_HANDLE_STMT>(dbc);
 	//	odbcx::SQLSetStmtAttr(stmt, SQL_ATTR_CURSOR_TYPE, SQLPOINTER(SQL_CURSOR_KEYSET_DRIVEN), SQL_IS_INTEGER);

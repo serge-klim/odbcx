@@ -12,7 +12,7 @@ add_library (odbcx
 		details/diversion.hpp
 		details/statement.hpp
 		bindings/in.hpp
-		bindings/out.hpp
+		bindings/columns.hpp
 		bindings/ttraits.hpp
 		utility.cpp
 )

@@ -1,6 +1,6 @@
 #pragma once
 #include "odbcx/details/diversion.hpp"
-#include "odbcx/bindings/out.hpp"
+#include "odbcx/bindings/columns.hpp"
 #include "odbcx/utility.hpp"
 #include <boost/fusion/include/at_c.hpp>
 #include <boost/fusion/include/accumulate.hpp>
@@ -71,9 +71,9 @@ template<typename Sequence>
 class StaticallyBindableStatement : details::Statement
 {
 	static_assert(boost::fusion::traits::is_sequence<Sequence>::value, "fusion sequence expected");
-	static_assert(details::out::IsSequenceStaticallyBindable<Sequence>::value, "fusion sequence supposed to be statically bindable");
+	static_assert(details::columns::IsSequenceStaticallyBindable<Sequence>::value, "fusion sequence supposed to be statically bindable");
 public:
-	using Bindings = details::out::StaticBindings<Sequence>;
+	using Bindings = details::columns::StaticBindings<Sequence>;
 	using Recordset = StaticallyBindableRecordset<Sequence>;
 	StaticallyBindableStatement(handle::Stmt&& stmt, std::string const& query) : Statement{ std::move(stmt), query }
 	{
@@ -118,7 +118,7 @@ private:
 	{
 		auto row = reinterpret_cast<Row const*>(details::bindings_offset);
 		auto const& value = boost::fusion::at_c<N>(row->value);
-		details::out::Bind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>{}.column(stmt, N + 1, SQLPOINTER(&value), const_cast<SQLLEN*>(row->indicators + N));
+		details::columns::Bind<typename boost::fusion::result_of::value_at_c<Sequence, N>::type>{}.column(stmt, N + 1, SQLPOINTER(&value), const_cast<SQLLEN*>(row->indicators + N));
 		bind_<N + 1>(stmt);
 	}
 
@@ -134,9 +134,9 @@ template<typename Sequence>
 class DynamicallyBindableStatement : details::Statement
 {
 	static_assert(boost::fusion::traits::is_sequence<Sequence>::value, "fusion sequence expected");
-	static_assert(details::out::IsSequenceDynamicallyBindable<Sequence>::value, "fusion sequence expected to be dynamically bindable");
+	static_assert(details::columns::IsSequenceDynamicallyBindable<Sequence>::value, "fusion sequence expected to be dynamically bindable");
 public:
-	using Bindings = details::out::DynamicBindings<Sequence>;
+	using Bindings = details::columns::DynamicBindings<Sequence>;
 	using Recordset = DynamicallyBindableRecordset<Sequence>;
 	DynamicallyBindableStatement(handle::Stmt&& stmt, std::string const& query) 
 		: Statement{ std::move(stmt), query }, bindings_{ Bindings::bind(Handle()) }
@@ -155,7 +155,7 @@ template<typename Sequence>
 class DynamicallyBindableRecordset
 {
 	static_assert(boost::fusion::traits::is_sequence<Sequence>::value, "fusion sequence expected");
-	static_assert(details::out::IsSequenceDynamicallyBindable<Sequence>::value, "fusion sequence expected to be dynamically bindable");
+	static_assert(details::columns::IsSequenceDynamicallyBindable<Sequence>::value, "fusion sequence expected to be dynamically bindable");
 	using Statement = DynamicallyBindableStatement<Sequence>;
 
 	class Iterator
@@ -219,10 +219,10 @@ private:
 };
 
 template<typename Sequence>
-using Recordset = typename std::conditional<details::out::IsSequenceStaticallyBindable<Sequence>::value, StaticallyBindableRecordset<Sequence>, DynamicallyBindableRecordset<Sequence> >::type;
+using Recordset = typename std::conditional<details::columns::IsSequenceStaticallyBindable<Sequence>::value, StaticallyBindableRecordset<Sequence>, DynamicallyBindableRecordset<Sequence> >::type;
 
 template<typename Sequence>
-using Statement = typename std::conditional<details::out::IsSequenceStaticallyBindable<Sequence>::value, StaticallyBindableStatement<Sequence>, DynamicallyBindableStatement<Sequence> >::type;
+using Statement = typename std::conditional<details::columns::IsSequenceStaticallyBindable<Sequence>::value, StaticallyBindableStatement<Sequence>, DynamicallyBindableStatement<Sequence> >::type;
 
 template<typename Sequence>
 typename StaticallyBindableRecordset<Sequence>::const_iterator cbegin(StaticallyBindableRecordset<Sequence> const& recordset) { return recordset.cbegin(); }
