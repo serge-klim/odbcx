@@ -74,8 +74,8 @@ BOOST_AUTO_TEST_CASE(InputParametersBinTest)
 
 BOOST_AUTO_TEST_CASE(InputParametersEmptyTest)
 {
-	auto empty = std::string{};
-	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", empty, empty, std::vector<std::uint8_t>{});
+    auto empty = "";
+	odbcx::query(dbc, "insert into test (target, messagetype, pb) values(?,?,?)", empty, std::string{}, std::vector<std::uint8_t>{});
 }
 
 BOOST_AUTO_TEST_CASE(InputParametersEmptyOptionalTest)

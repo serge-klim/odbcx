@@ -179,11 +179,7 @@ namespace odbcx { inline namespace v0 {
 				call(&SQLGetData, stmt, column, type, buffer.data() + chunk_size / sizeof(T), buffer.size() * sizeof(T) - chunk_size, &read);
 				assert(read + chunk_size == len);
 			}
-			else
-			{
-				//seems that size of data is less than chunk_size, done here...
-				assert(read > 0 && read < SQLLEN(chunk_size));
-			}
+            //seems that size of data is less than chunk_size, done here...
 		}
 		buffer.resize(len / sizeof(T));
 		return buffer;
