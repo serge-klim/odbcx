@@ -11,7 +11,7 @@
 #include <boost/fusion/include/mpl.hpp>
 #include <boost/mpl/range_c.hpp>
 #include "odbcx/bindings/in.hpp"
-#include "odbcx/bindings/out.hpp"
+#include "odbcx/bindings/columns.hpp"
 #include "odbcx/details/statement.hpp"
 #include "odbcx/utility.hpp"
 #include <boost/utility/string_view.hpp>
@@ -227,7 +227,7 @@ private:
 		query_base += '.';
 		query_base += boost::fusion::extension::struct_member_name<OutSequence, 0>::call();
 		using range = boost::mpl::range_c<size_t, 1, boost::fusion::result_of::size<OutSequence>::type::value>;
-		auto query = boost::fusion::accumulate(range{}, query_base, details::out::NameGenerator<OutSequence>{std::move(alias_view)}/*[](std::string str, auto i) -> std::string
+		auto query = boost::fusion::accumulate(range{}, query_base, details::columns::NameGenerator<OutSequence>{std::move(alias_view)}/*[](std::string str, auto i) -> std::string
 																											{
 																											return str + ',' + boost::fusion::extension::struct_member_name<Sequence, i>::call();
 																											}*/);

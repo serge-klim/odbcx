@@ -26,7 +26,7 @@ namespace odbcx { inline namespace v0 {
 
 using NoBind = boost::mpl::void_;
 
-namespace details { namespace out {
+namespace details { namespace columns {
 
 template<typename T, typename Enabled = boost::mpl::true_> struct Bind;
 
@@ -612,4 +612,4 @@ private:
 };
 
 
-}  /*namespace out*/}  /*namespace details*/ }/*inline namespace v0*/} //namespace odbcx
+}  /*namespace columns*/}  /*namespace details*/ }/*inline namespace v0*/} //namespace odbcx
