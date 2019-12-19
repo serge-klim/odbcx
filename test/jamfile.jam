@@ -1,0 +1,32 @@
+using testing ;
+
+project tests ;
+
+alias odbc :
+			/odbcx//odbcx/<link>static
+			/user-config//odbc
+;
+
+
+
+unit-test test :
+        connections.cpp
+        test.cpp
+        blob_test.cpp
+        flyweight_test.cpp
+        handle_test.cpp
+        modifiable_cursor_test.cpp
+		select_statments_test.cpp
+        simple_queries_test.cpp
+        surrogate_test.cpp
+		transactions_test.cpp
+		
+		/boost//unit_test_framework/<link>static
+		/boost//program_options/<link>static
+        /boost//system/<link>static
+		/boost//filesystem/<link>static
+		odbc
+    ;
+
+# compile-fail fail_set_attr_test.cpp  odbc ;
+# #compile-fail fail_select_stmt1_test.cpp odbc ;

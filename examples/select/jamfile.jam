@@ -1,0 +1,5 @@
+
+exe select :
+          main.cpp
+          : <library>/boost//headers
+          ;

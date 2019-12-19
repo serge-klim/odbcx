@@ -1,0 +1,149 @@
+environment:
+  APPVEYOR_YML_DISABLE_PS_LINUX: true
+  PGPASSWORD: Password12!
+  PGUSER: postgres
+
+  matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    BOOST_VER: x64-1.69
+    BOOST_ROOT: C:\Libraries\boost_1_69_0
+    BOOST_LIBS: C:\Libraries\boost_1_69_0\lib64-msvc-14.1
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
+    VCPLATFORM:
+    SQLSRV: MSSQL$SQL2017
+    TEST_CONFIGS: mssql;postgres64;mysql5_3
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    BOOST_VER: x32-1.69
+    BOOST_ROOT: C:\Libraries\boost_1_69_0
+    BOOST_LIBS: C:\Libraries\boost_1_69_0\lib32-msvc-14.1
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
+    VCPLATFORM:
+    SQLSRV: MSSQL$SQL2017
+    TEST_CONFIGS: mssql
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    BOOST_VER: x64-1.69
+    BOOST_ROOT: C:\Libraries\boost_1_69_0
+    BOOST_LIBS: C:\Libraries\boost_1_69_0\lib64-msvc-14.0
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
+    VCPLATFORM: amd64_x86
+    SQLSRV: MSSQL$SQL2008R2SP2
+    CODECOVE: ON
+    TEST_CONFIGS: mssql;postgres64;mysql5_3
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    BOOST_VER: x32-1.69
+    BOOST_ROOT: C:\Libraries\boost_1_69_0
+    BOOST_LIBS: C:\Libraries\boost_1_69_0\lib32-msvc-14.0
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat 
+    VCPLATFORM: x86
+    SQLSRV: MSSQL$SQL2008R2SP2
+    TEST_CONFIGS: mssql
+
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+  #   COMPILER: clang++-6.0 
+  #   TOOLSET: clang
+  #   CPPSTD: c++1y
+  #   BOOST_VER: 1.69.0
+  #   TEST_CONFIGS: mssql17
+  #   INSTALL: clang-6.0 lld-6.0 libc++-dev libc++abi-dev
+
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+  #   COMPILER: g++-6 
+  #   TOOLSET: gcc-6
+  #   CPPSTD: c++11
+  #   BOOST_VER: 1.69.0
+  #   TEST_CONFIGS: mssql17
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+    COMPILER: g++-8 
+    TOOLSET: gcc-8
+    CPPSTD: c++14
+    BOOST_VER: 1.71.0
+    INSTALL: build-essential gcc-8-multilib odbc-postgresql
+    TEST_CONFIGS: mssql17;mysql
+
+for:
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+  services:
+    - mssql2008r2sp2
+    - postgresql101
+    - mysql
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  services:
+    - mssql2017
+    - postgresql101
+    - mysql
+
+services:
+  - mssql
+  - mysql
+
+install:
+  - cmd: |
+      call "%VCVARS%" %VCPLATFORM% 
+      cd %BOOST_ROOT% 
+      bootstrap.bat 
+  - cmd: >+
+      if not [%CODECOVE%]==[] (
+      set COVER_SRC="%APPVEYOR_BUILD_FOLDER%\odbcx" &
+      set CONFIG=opencppcoverage %CONFIG% &
+      choco install opencppcoverage codecov &
+      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources %APPVEYOR_BUILD_FOLDER% --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
+  - sh: |
+      sudo apt-get update && sudo apt-get install -y ${INSTALL}
+      ############################################################################
+      # Install MySQL ODBC 8.0 Driver
+      ############################################################################
+      curl -L https://dev.mysql.com/get/Downloads/Connector-ODBC/8.0/mysql-connector-odbc-8.0.17-linux-ubuntu18.04-x86-64bit.tar.gz --retry 5 --retry-delay 2 | tar -xz
+      sudo mysql-connector-odbc-8.0.17-linux-ubuntu18.04-x86-64bit/bin/myodbc-installer -a -d -n "MySQL ODBC 8.0 ANSI Driver" -t "DRIVER=$(pwd)/mysql-connector-odbc-8.0.17-linux-ubuntu18.04-x86-64bit/lib/libmyodbc8a.so"
+      odbcinst -j && cat /etc/odbcinst.ini
+      if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+  # - sh: |
+  #     ############################################################################
+  #     # Install libc++ and libc++abi if needed
+  #     ############################################################################
+  #     if [[ "${CXX%%+*}" == "clang" ]]; then
+  #       export TRAVIS_BUILD_DIR=${APPVEYOR_BUILD_FOLDER}
+  #       bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/lib++.install)
+  #       export B2FLAGS="${B2FLAGS} cxxflags=-isystem${APPVEYOR_BUILD_FOLDER}/llvm/out/include/c++/v1 linkflags=-L${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
+  #       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${APPVEYOR_BUILD_FOLDER}/llvm/out/lib"
+  #     fi
+  - sh: |
+      ############################################################################
+      # Download boost and build boost test and program_options
+      ############################################################################
+      cd ${APPVEYOR_BUILD_FOLDER}
+      bash <( curl -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/travis/boost.install) toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi --layout=versioned --with-test --with-program_options --with-system --with-filesystem -d0 stage debug
+      export BOOST_ROOT=${APPVEYOR_BUILD_FOLDER}/boost_${BOOST_VER//./_}    
+
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%
+  - curl --retry 5 -s https://raw.githubusercontent.com/serge-klim/cihelpers/master/project-config.jam > project-config.jam
+  - cmd: PATH=C:\Program Files\PostgreSQL\10\bin\;C:\Program Files\MySQL\MySQL Server 5.7\bin;%PATH%
+build_script:
+  - sh: |
+      for i in 1 2 3 4 5; do sqlcmd -S localhost -U SA -P Password12!  -Q "CREATE DATABASE test;" && break || sleep 15; done
+  - cmd: appveyor-retry sqlcmd -S localhost -U SA -P Password12!  -Q "CREATE DATABASE test;"
+  - mysql --user=root --password=Password12! -e "CREATE DATABASE test;"
+  - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;"
+  - cmd: |
+      "%BOOST_ROOT%\b2.exe" -sBOOST_ROOT=%BOOST_ROOT% -sBOOST_VER=%BOOST_VER% -sBOOST_LIBS=%BOOST_LIBS% -sTESTING_LAUNCHER="%APPVEYOR_BUILD_FOLDER%/%TESTING_LAUNCHER%" toolset=msvc address-model=%ADDRESS_MODEL% threading=multi testing.arg="--logger=JUNIT,all,unittests.xml --report_sink=stdout --report_level=short -- \"%TEST_CONFIGS%\"" -a %CONFIG%
+  - sh: |
+      ${BOOST_ROOT}/b2 toolset=${TOOLSET} cxxflags="-std=${CPPSTD}" ${B2FLAGS} address-model=64 threading=multi -a --layout=versioned -sBOOST_ROOT=${BOOST_ROOT} -sBOOST_VER=x64-${BOOST_VER%.*} -sBOOST_LIBS=${BOOST_ROOT}/stage/lib testing.arg="--logger=JUNIT,all,unittests.xml --report_sink=stdout --report_level=short -- \"${TEST_CONFIGS}\"" debug
+on_success:
+  - cmd: |
+      if not [%CODECOVE%]==[] ("C:\ProgramData\chocolatey\lib\codecov\tools\codecov" -f "cobertura.xml" -t "4cd5b25e-4ca1-4bf0-ac42-92924658728a")
+on_finish:
+  - sh: curl --retry 5 -F "file=@unittests.xml" "https://ci.appveyor.com/api/testresults/junit/$APPVEYOR_JOB_ID"
+  - cmd: curl --retry 5 -F "file=@unittests.xml" "https://ci.appveyor.com/api/testresults/junit/%APPVEYOR_JOB_ID%"

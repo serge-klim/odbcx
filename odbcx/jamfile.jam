@@ -1,0 +1,10 @@
+
+import os ;
+
+lib odbcx
+    : utility.cpp
+	  transaction.cpp
+    : <library>/boost///headers
+    : # no default build
+    : <include>..
+    ;

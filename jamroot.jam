@@ -1,0 +1,24 @@
+import boost ;
+boost.use-project ;
+import testing ;
+
+project dbtest
+    : requirements 
+	<define>BOOST_ALL_NO_LIB=1
+	<define>BOOST_TEST_NO_AUTO_LINK=1
+   	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+    <toolset>msvc:<define>_ENABLE_ATOMIC_ALIGNMENT_FIX
+    <toolset>gcc:<cxxflags>-ftemplate-depth=256
+	# <toolset>msvc:<linkflags>-verbose
+	# <toolset>gcc:<cxxflags>-v   
+	# <toolset>gcc:<linkflags>--verbose
+	# <target-os>qnxnto:<define>__EXT_QNX
+	<target-os>windows:<define>_WIN32_WINNT=0x0600
+	<target-os>windows:<define>BOOST_USE_WINAPI_VERSION=0x0600
+	<target-os>qnxnto:<define>_QNX_SOURCE #__EXT_POSIX1_199309
+;
+
+use-project /odbcx : odbcx ;
+build-project test ;
+
+
