@@ -109,11 +109,11 @@ std::vector<test::Connection> init_connections()
 						if (!boost::filesystem::exists(path))
 							continue;
 					}
-					auto dsn = std::string{ "FILEDSN=" };
-					dsn += boost::filesystem::system_complete(path).string();
-					dsn += ';';
-					connection_string = std::move(dsn);
 				}
+				auto dsn = std::string{ "FILEDSN=" };
+				dsn += boost::filesystem::system_complete(path).string();
+				dsn += ';';
+				connection_string = std::move(dsn);
 				odbcx::connect(dbc, connection_string);
 			}
 

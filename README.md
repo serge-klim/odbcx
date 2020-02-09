@@ -125,8 +125,8 @@ And iterate through result:
 query could be more complex than simple select:
 ```
     auto target = std::string{ "target x" };
-    auto statement1 = odbcx::select<data::Test>{}.from("test").where("target=?", target).exec(dbc);
-    auto statement2 = odbcx::select<data::Test>{}.from("test").as("alias").where("alias.target=?", target).exec(dbc);
+    auto cursor1 = odbcx::select<data::Test>{}.from("test").where("target=?", target).exec(dbc);
+    auto cursor2 = odbcx::select<data::Test>{}.from("test").as("alias").where("alias.target=?", target).exec(dbc);
 
 ```
 

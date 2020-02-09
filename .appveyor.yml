@@ -97,10 +97,9 @@ install:
       bootstrap.bat 
   - cmd: >+
       if not [%CODECOVE%]==[] (
-      set COVER_SRC="%APPVEYOR_BUILD_FOLDER%\odbcx" &
       set CONFIG=opencppcoverage %CONFIG% &
       choco install opencppcoverage codecov &
-      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources %APPVEYOR_BUILD_FOLDER% --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
+      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources="%APPVEYOR_BUILD_FOLDER%\odbcx" --working_dir="%APPVEYOR_BUILD_FOLDER%" --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
   - sh: |
       sudo apt-get update && sudo apt-get install -y ${INSTALL}
       ############################################################################
