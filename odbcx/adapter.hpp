@@ -11,7 +11,7 @@ namespace odbcx {
 template<typename T> struct Adapter;
 
 template<>
-struct Adapter <std::chrono::system_clock::time_point>
+struct Adapter<std::chrono::system_clock::time_point>
 {
     using type = SQL_TIMESTAMP_STRUCT;
     std::chrono::system_clock::time_point operator()(SQL_TIMESTAMP_STRUCT const& value) const noexcept 

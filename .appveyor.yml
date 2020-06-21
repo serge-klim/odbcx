@@ -4,6 +4,26 @@ environment:
   PGUSER: postgres
 
   matrix:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    BOOST_VER: x64-1.73
+    BOOST_ROOT: C:\Libraries\boost_1_73_0
+    BOOST_LIBS: C:\Libraries\boost_1_73_0\lib64-msvc-14.2
+    ADDRESS_MODEL: 64
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat
+    VCPLATFORM: amd64 -vcvars_ver=14.2
+    SQLSRV: MSSQL$SQL2017
+    TEST_CONFIGS: mssql17;mysql
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    BOOST_VER: x32-1.73
+    BOOST_ROOT: C:\Libraries\boost_1_73_0
+    BOOST_LIBS: C:\Libraries\boost_1_73_0\lib32-msvc-14.2
+    ADDRESS_MODEL: 32
+    VCVARS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat
+    VCPLATFORM: amd64 -vcvars_ver=14.2
+    SQLSRV: MSSQL$SQL2017
+    TEST_CONFIGS: mssql
+
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     BOOST_VER: x64-1.69
     BOOST_ROOT: C:\Libraries\boost_1_69_0
@@ -68,6 +88,13 @@ environment:
     INSTALL: build-essential gcc-8-multilib odbc-postgresql
     TEST_CONFIGS: mssql17;mysql
 
+  # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+  #   COMPILER: clang++-10 
+  #   TOOLSET: clang-10
+  #   CPPSTD: c++2a
+  #   BOOST_VER: 1.73.0
+  #   INSTALL: build-essential odbc-postgresql
+  #   TEST_CONFIGS: mysql
 for:
 -
   matrix:
@@ -85,9 +112,24 @@ for:
     - mssql2017
     - postgresql101
     - mysql
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+  services:
+    - postgresql101
+    - mysql
+  init:
+    - net start MSSQL$SQL2019
+-
+  matrix:
+    only:
+      - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+  services:
+    - mssql
+    - mysql
 
 services:
-  - mssql
   - mysql
 
 install:
@@ -99,7 +141,7 @@ install:
       if not [%CODECOVE%]==[] (
       set CONFIG=opencppcoverage %CONFIG% &
       choco install opencppcoverage codecov &
-      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources="%APPVEYOR_BUILD_FOLDER%\odbcx" --working_dir="%APPVEYOR_BUILD_FOLDER%" --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
+      echo "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" --sources="%APPVEYOR_BUILD_FOLDER%\odbcx" --excluded_sources="%APPVEYOR_BUILD_FOLDER%\test" --working_dir="%APPVEYOR_BUILD_FOLDER%" --export_type=cobertura:cobertura.xml -- %%* > %APPVEYOR_BUILD_FOLDER%\trunner.cmd  )
   - sh: |
       sudo apt-get update && sudo apt-get install -y ${INSTALL}
       ############################################################################
@@ -132,7 +174,7 @@ install:
   - cmd: PATH=C:\Program Files\PostgreSQL\10\bin\;C:\Program Files\MySQL\MySQL Server 5.7\bin;%PATH%
 build_script:
   - sh: |
-      for i in 1 2 3 4 5; do sqlcmd -S localhost -U SA -P Password12!  -Q "CREATE DATABASE test;" && break || sleep 15; done
+      if [[ ${TEST_CONFIGS} == *"mssql"* ]]; then for i in 1 2 3 4 5; do sqlcmd -S localhost -U SA -P Password12!  -Q "CREATE DATABASE test;" && break || sleep 15; done; fi
   - cmd: appveyor-retry sqlcmd -S localhost -U SA -P Password12!  -Q "CREATE DATABASE test;"
   - mysql --user=root --password=Password12! -e "CREATE DATABASE test;"
   - cmd: psql -h localhost -U postgres -c "CREATE DATABASE test;"

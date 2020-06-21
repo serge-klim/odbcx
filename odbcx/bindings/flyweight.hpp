@@ -1,8 +1,11 @@
 // Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
 
 #pragma once
-#include "odbcx/details/diversion.hpp"
 #include "odbcx/handle.hpp"
+//#include "odbcx/details/cast.hpp"
+#include "odbcx/details/diversion.hpp"
+#include <boost/range/iterator_range.hpp>
+#include <boost/mp11/utility.hpp>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -114,9 +117,6 @@ struct Flyweight : FlyweightBase<T>
         std::memcpy(&res, Base::value(), sizeof(value_type));
         return res;
     }
-    //constexpr operator value_type const& () const noexcept { return *Base::value(); }
-    operator value_type() const noexcept { return value(); }
-    /*constexpr*/ operator diversion::optional<value_type>() const noexcept { return is_null() ? diversion::nullopt : diversion::make_optional(value()); }
     
     template<typename U, typename Enable = typename std::enable_if<!std::is_const<T>::value, U>::type>
     Flyweight& operator=(U const& value) noexcept { assign(value); return *this; }
@@ -132,6 +132,17 @@ private:
     }
 };
 
+template<typename T, typename Result>
+Result flyweight_cast(T const& src, boost::mp11::mp_identity<Result>) noexcept { return src.value(); }
+
+template<typename T, typename Result>
+diversion::optional<Result> flyweight_cast(T const& src, boost::mp11::mp_identity<diversion::optional<Result>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(flyweight_cast(src, boost::mp11::mp_identity<Result>{}));
+}
+template<typename T, typename Result>
+Result cast(Flyweight<T> const& src, boost::mp11::mp_identity<Result>) { return flyweight_cast(src, boost::mp11::mp_identity<Result>{}); }
+
 template<typename T, std::size_t N>
 struct Flyweight<T[N]> : FlyweightBase<T>
 {
@@ -146,19 +157,7 @@ struct Flyweight<T[N]> : FlyweightBase<T>
 
     constexpr std::size_t size() const noexcept { return Base::size()/sizeof(value_type); }
     constexpr std::size_t capacity() const noexcept { return N; }
-    operator std::vector<value_type>() const
-    { 
-        return { Base::value(), Base::value() + size() };
-    }
-    operator std::basic_string<value_type>() const { return { Base::value(), Base::value() + size() }; }
-    operator diversion::optional<std::vector<value_type>>() const
-    { 
-        return is_null() ? diversion::nullopt : diversion::make_optional(std::vector<value_type>{ Base::value(), Base::value() + size() });
-    }
-    operator diversion::optional<std::basic_string<value_type>>() const
-    {
-        return is_null() ? diversion::nullopt : diversion::make_optional(std::basic_string<value_type>{ Base::value(), Base::value() + size() });
-    }
+    boost::iterator_range<value_type const*> value() const { return { Base::value(), Base::value() + size() }; }
     template<typename U, typename Enable = typename std::enable_if<!std::is_const<T>::value, U>::type>
     Flyweight& operator=(U&& value) { assign(std::forward<U>(value)); return *this; }
 private:
@@ -183,6 +182,19 @@ private:
             assign(*value);
     }
 };
+
+template<typename T, std::size_t N, typename Result>
+Result flyweight_cast(Flyweight<T[N]> const& src, boost::mp11::mp_identity<Result>)
+{
+    auto const& range = src.value();
+    return { range.begin(), range.end() };
+}
+
+template<typename T, std::size_t N, typename Result>
+diversion::optional<Result> flyweight_cast(Flyweight<T[N]> const& src, boost::mp11::mp_identity<diversion::optional<Result>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(flyweight_cast(src, boost::mp11::mp_identity<Result>{}));
+}
 
 template<typename T, std::size_t N>
 void copy2array(T(&dest)[N], Flyweight<const T[N]> const& src)
@@ -215,19 +227,7 @@ struct FlyweightArray : FlyweightBase<T>
 
     constexpr std::size_t size() const noexcept { return Base::size()/sizeof(value_type); }
     constexpr std::size_t capacity() const noexcept { return capacity_; }
-    operator std::vector<value_type>() const
-    { 
-        return { Base::value(), Base::value() + size() };
-    }
-    operator std::basic_string<value_type>() const { return { Base::value(), Base::value() + size() }; }
-    operator diversion::optional<std::vector<value_type>>() const
-    { 
-        return is_null() ? diversion::nullopt : diversion::make_optional(std::vector<value_type>{ Base::value(), Base::value() + size() });
-    }
-    operator diversion::optional<std::basic_string<value_type>>() const
-    {
-        return is_null() ? diversion::nullopt : diversion::make_optional(std::basic_string<value_type>{ Base::value(), Base::value() + size() });
-    }
+    boost::iterator_range<value_type const*> value() const { return { Base::value(), Base::value() + size() }; }
     template<typename U, typename Enable = typename std::enable_if<!std::is_const<T>::value, U>::type>
     FlyweightArray& operator=(U&& value) { assign(std::forward<U>(value)); return *this; }
 private:
@@ -254,6 +254,22 @@ private:
 private:
     std::size_t capacity_;
 };
+
+template<typename T, typename Result>
+Result flyweight_cast(FlyweightArray<T> const& src, boost::mp11::mp_identity<Result>)
+{
+    auto const& range = src.value();
+    return { range.begin(), range.end() };
+}
+
+template<typename T, typename Result>
+diversion::optional<Result> flyweight_cast(FlyweightArray<T> const& src, boost::mp11::mp_identity<diversion::optional<Result>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(flyweight_cast(src, boost::mp11::mp_identity<Result>{}));
+}
+
+template<typename T, typename Result>
+Result cast(FlyweightArray<T> const& src, boost::mp11::mp_identity<Result>) { return flyweight_cast(src, boost::mp11::mp_identity<Result>{}); }
 
 template<typename T>
 FlyweightArray<typename std::add_const<T>::type> make_flyweight_array(SQLLEN const* begin, SQLLEN const* end) { return { begin, end }; }

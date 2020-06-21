@@ -2,10 +2,10 @@
 
 #pragma once
 #include "iterator.hpp"
-#include "odbcx/bindings/columns.hpp"
-#include "odbcx/attribute.hpp"
-#include "odbcx/handle.hpp"
 #include "bookmark.hpp"
+#include "odbcx/handle.hpp"
+#include "odbcx/attribute.hpp"
+#include "odbcx/bindings/columns.hpp"
 #include <boost/range/iterator_range.hpp>
 #include <boost/fusion/include/size.hpp>
 #include <boost/fusion/include/value_at.hpp>
@@ -76,7 +76,10 @@ protected:
     using Stmt = typename std::conditional<std::is_same<HandleAttributes, Attributes>::value
                                                     , handle::Handle<SQL_HANDLE_STMT, HandleAttributes>
                                                     , handle::Adapter<SQL_HANDLE_STMT, HandleAttributes>>::type;
-    UtilityCursor(Stmt&& stmt) : stmt_{ std::forward<Stmt>(stmt) } {}
+    UtilityCursor(Stmt&& stmt) : stmt_{ std::forward<Stmt>(stmt) } 
+    {
+        handle::set_attribute(stmt_, SQL_ATTR_ROWS_FETCHED_PTR, &fetched_); // has to bee mem variable or has to be reset after each call of SQLFetchScroll since oracle's odbc drivers SQLGetData updates it
+    }
     Stmt const& handle() const & { return stmt_; }
 public:
     Stmt handle() && 
@@ -97,8 +100,6 @@ protected:
 
     std::size_t fetch(SQLSMALLINT orientation, SQLLEN offset = 0)
     {
-        SQLULEN fetched = 0;
-        handle::set_attribute(stmt_, SQL_ATTR_ROWS_FETCHED_PTR, &fetched);
 //      https://support.oracle.com/knowledge/Oracle%20Database%20Products/1472987_1.html
 //      auto statuses = std::vector<SQLUSMALLINT>(n);
 //      SQLSetStmtAttr(stmt, SQL_ATTR_ROW_STATUS_PTR, statuses.data(), 0);
@@ -110,7 +111,7 @@ protected:
         //  return SQL_ROW_SUCCESS != status;
         //}) == end(statuses));
         //return statuses;
-        return call(&SQLFetchScroll, stmt_, orientation, offset) == SQL_NO_DATA ? 0 : std::size_t{ fetched };
+        return call(&SQLFetchScroll, stmt_, orientation, offset) == SQL_NO_DATA ? 0 : std::size_t{ fetched_};
     }
     constexpr std::size_t buffer_size(std::size_t rec_size) const noexcept
     {
@@ -119,6 +120,7 @@ protected:
     static constexpr SQLLEN binding_offset____() noexcept { return sizeof(SQLLEN); /* DynamicLayout<T>::binding_offset____();*/ }
 private:
     Stmt stmt_;
+    SQLULEN fetched_ = 0;
 };
 
 
@@ -389,18 +391,19 @@ public:
         Base::bindings().emplace(insert_, std::forward<Sequence>(value));
     }
 
-    template<typename ...Args>
-    auto insert(Args&&... args) 
-        -> decltype(std::declval<typename Base::Bindings>().emplace(std::declval<typename Base::Data&>(), std::forward<Args>(args)...))
-    {
-        return Base::bindings().emplace(insert_, std::forward<Args>(args)...);
-    }
     template<typename Iterator>
     auto insert(Iterator begin, Iterator end)
         -> decltype(std::declval<typename Base::Bindings>().emplace(std::declval<typename Base::Data&>(), std::declval<typename Iterator::value_type > ()))
     {
         for(;begin != end; ++begin)
             Base::bindings().emplace(insert_, *begin);
+    }
+
+    template<typename ...Args>
+    auto emplace(Args&&... args)
+        -> decltype(std::declval<typename Base::Bindings>().emplace(std::declval<typename Base::Data&>(), std::forward<Args>(args)...))
+    {
+        return Base::bindings().emplace(insert_, std::forward<Args>(args)...);
     }
 
     void apply_changes()

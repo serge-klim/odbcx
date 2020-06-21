@@ -1,10 +1,10 @@
 // Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
 
 #pragma once
+#include "ttraits.hpp"
 #include "odbcx/utility.hpp"
 #include "odbcx/handle.hpp"
 #include "odbcx/details/diversion.hpp"
-#include "ttraits.hpp"
 #include <boost/mp11/tuple.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/function.hpp>

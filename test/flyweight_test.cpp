@@ -1,5 +1,6 @@
-#include "odbcx/details/odbc.hpp"
+#include "odbcx/details/cast.hpp"
 #include "odbcx/bindings/flyweight.hpp"
+#include "odbcx/details/odbc.hpp"
 #include "odbcx/details/diversion.hpp"
 #include <boost/range/iterator_range.hpp>
 //#include <boost/core/ignore_unused.hpp>
@@ -28,10 +29,10 @@ BOOST_AUTO_TEST_CASE(ConstNullIntFlyweightTest)
                                                             static_cast<SQLLEN const*>(&layout.indicator + (sizeof(layout) + sizeof(SQLLEN) - 1) / sizeof(SQLLEN) ));
     BOOST_CHECK(!flyweight);
     BOOST_CHECK(flyweight.is_null());
-    diversion::optional<int> optional = flyweight;
+    auto optional = odbcx::details::cast<diversion::optional<int>>(flyweight);
     BOOST_CHECK(!optional);
 
-    int y = flyweight;
+    auto y = odbcx::details::cast<int>(flyweight);
     BOOST_CHECK_EQUAL(y, 0);
 }
 
@@ -43,19 +44,19 @@ BOOST_AUTO_TEST_CASE(NullIntFlyweightTest)
     auto flyweight = odbcx::details::make_flyweight<int>(&layout.indicator,&layout.indicator + sizeof(layout) / sizeof(SQLLEN) );
     BOOST_CHECK(!flyweight);
     BOOST_CHECK(flyweight.is_null());
-    diversion::optional<int> optional = flyweight;
+    auto optional = odbcx::details::cast<diversion::optional<int>>(flyweight);
     BOOST_CHECK(!optional);
 
-    int y = flyweight;
+    auto y = odbcx::details::cast<int>(flyweight);
     BOOST_CHECK_EQUAL(y, 0);
     flyweight = 303;
     BOOST_CHECK_EQUAL(!flyweight, false);
     BOOST_CHECK(!flyweight.is_null());
     BOOST_CHECK_EQUAL(x, 303);
 
-    /*diversion::optional<int>*/ optional = flyweight;
+    /*diversion::optional<int>*/ optional = odbcx::details::cast<diversion::optional<int>>(flyweight);
     BOOST_CHECK_EQUAL(!optional, false);
-    BOOST_CHECK_EQUAL(optional.get(), 303);
+    BOOST_CHECK_EQUAL(*optional, 303);
 
     flyweight = nullptr;
     BOOST_CHECK(!flyweight);
@@ -80,12 +81,12 @@ BOOST_AUTO_TEST_CASE(IntFlyweightTest)
     auto flyweight = odbcx::details::make_flyweight<int>(&layout.indicator, &layout.indicator + (sizeof(layout) + sizeof(SQLLEN) - 1) / sizeof(SQLLEN));
     BOOST_CHECK_EQUAL(!flyweight,false);
     BOOST_CHECK(!flyweight.is_null());
-    BOOST_CHECK_EQUAL(static_cast<int>(flyweight), x);
-    diversion::optional<int> optional = flyweight;
+    BOOST_CHECK_EQUAL(odbcx::details::cast<int>(flyweight), x);
+    auto optional = odbcx::details::cast<diversion::optional<int>>(flyweight);
     BOOST_CHECK_EQUAL(!optional, false);
-    BOOST_CHECK_EQUAL(optional.get(), x);
+    BOOST_CHECK_EQUAL(*optional, x);
 
-    int y = flyweight;
+    auto y = odbcx::details::cast<int>(flyweight);
     BOOST_CHECK_EQUAL(y, x);
     flyweight = 303;
     BOOST_CHECK_EQUAL(!flyweight, false);
@@ -96,7 +97,7 @@ BOOST_AUTO_TEST_CASE(IntFlyweightTest)
     BOOST_CHECK(flyweight.is_null());
     flyweight = optional;
     BOOST_CHECK_EQUAL(!optional, false);
-    BOOST_CHECK_EQUAL(optional.get(), x);
+    BOOST_CHECK_EQUAL(*optional, x);
 
     flyweight = 505;
     BOOST_CHECK_EQUAL(!flyweight, false);
@@ -119,13 +120,13 @@ BOOST_AUTO_TEST_CASE(EmptyConstCharArrayFlyweightTest)
         static_cast<SQLLEN const*>(&layout.indicator + (sizeof(layout) + sizeof(SQLLEN) - 1) / sizeof(SQLLEN)));
 
     BOOST_CHECK(!flyweight);
-    std::string str = flyweight;
+    auto str = odbcx::details::cast<std::string>(flyweight);
     BOOST_CHECK(str.empty());
-    std::vector<char> vector = flyweight;
+    auto vector = odbcx::details::cast<std::vector<char>>(flyweight);
     BOOST_CHECK(vector.empty());
-    diversion::optional<std::string> optional_str = flyweight;
+    auto optional_str = odbcx::details::cast<diversion::optional<std::string>>(flyweight);
     BOOST_CHECK(!optional_str);
-    diversion::optional<std::vector<char>> optional_vector = flyweight;
+    auto optional_vector = odbcx::details::cast<diversion::optional<std::vector<char>>>(flyweight);
     BOOST_CHECK(!optional_vector);
 
     char out[100];
@@ -147,22 +148,22 @@ BOOST_AUTO_TEST_CASE(ConstCharArrayFlyweightTest)
     BOOST_CHECK_EQUAL(!flyweight, false);
     BOOST_CHECK(!flyweight.is_null());
     BOOST_CHECK_EQUAL(flyweight.size(), size);
-    std::string str = flyweight;
+    auto str = odbcx::details::cast<std::string>(flyweight);
     BOOST_CHECK_EQUAL(str, x);
     //diversion::string_view view = flyweight;
     //BOOST_CHECK_EQUAL(view, x);
-    std::vector<char> vector = flyweight;
+    auto vector = odbcx::details::cast<std::vector<char>>(flyweight);
     BOOST_CHECK_EQUAL_COLLECTIONS(begin(vector), end(vector), begin(x), end(x));
     //boost::iterator_range<char const*> range = flyweight;
     //BOOST_CHECK_EQUAL_COLLECTIONS(range.begin(), range.end(), begin(x), end(x));
 
 
-    diversion::optional<std::string> optional_str = flyweight;
+    auto optional_str = odbcx::details::cast<diversion::optional<std::string>>(flyweight);
     BOOST_CHECK_EQUAL(!optional_str, false);
-    BOOST_CHECK_EQUAL(optional_str.get(), x);
-    diversion::optional<std::vector<char>> optional_vector = flyweight;
+    BOOST_CHECK_EQUAL(*optional_str, x);
+    auto optional_vector = odbcx::details::cast<diversion::optional<std::vector<char>>>(flyweight);
     BOOST_CHECK_EQUAL(!optional_vector, false);
-    BOOST_CHECK_EQUAL_COLLECTIONS(begin(optional_vector.get()), end(optional_vector.get()), begin(x), end(x));
+    BOOST_CHECK_EQUAL_COLLECTIONS(begin(*optional_vector), end(*optional_vector), begin(x), end(x));
 
     char out[100];
     odbcx::details::copy2array(out, flyweight);
@@ -183,11 +184,11 @@ BOOST_AUTO_TEST_CASE(CharArrayFlyweightTest)
     BOOST_CHECK(!flyweight.is_null());
     BOOST_CHECK_EQUAL(flyweight.size(), size);
 
-    std::string str = flyweight;
+    auto str = odbcx::details::cast<std::string>(flyweight);
     BOOST_CHECK_EQUAL(str, x);
     //diversion::string_view view = flyweight;
     //BOOST_CHECK_EQUAL(view, x);
-    std::vector<char> vector = flyweight;
+    auto vector = odbcx::details::cast<std::vector<char>>(flyweight);
     BOOST_CHECK_EQUAL_COLLECTIONS(begin(vector), end(vector), begin(x), end(x));
     //boost::iterator_range<char const*> range = flyweight;
     //BOOST_CHECK(!range.empty());
@@ -197,17 +198,17 @@ BOOST_AUTO_TEST_CASE(CharArrayFlyweightTest)
     auto modifyed = std::string{ "modifyed" };
     flyweight = modifyed;
     BOOST_CHECK_EQUAL(flyweight.size(), modifyed.size());
-    std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size());
+    BOOST_CHECK_EQUAL(std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size()), 0);
 
-    diversion::optional<std::string> ostr = flyweight;
-    BOOST_CHECK_EQUAL(!ostr, false);
-    BOOST_CHECK_EQUAL((*ostr).size(), modifyed.size());
-    BOOST_CHECK_EQUAL(*ostr, modifyed);
+    auto optional_str = odbcx::details::cast<diversion::optional<std::string>>(flyweight);
+    BOOST_CHECK_EQUAL(!optional_str, false);
+    BOOST_CHECK_EQUAL(optional_str->size(), modifyed.size());
+    BOOST_CHECK_EQUAL(*optional_str, modifyed);
 
-    diversion::optional<std::vector<char>> ovec = flyweight;
-    BOOST_CHECK_EQUAL(!ovec, false);
-    BOOST_CHECK_EQUAL((*ovec).size(), modifyed.size());
-    BOOST_CHECK_EQUAL(std::char_traits<char>::compare((*ovec).data(), modifyed.data(), (*ovec).size()), 0);
+    auto optional_vector = odbcx::details::cast<diversion::optional<std::vector<char>>>(flyweight);
+    BOOST_CHECK_EQUAL(!optional_vector, false);
+    BOOST_CHECK_EQUAL(optional_vector->size(), modifyed.size());
+    BOOST_CHECK_EQUAL(std::char_traits<char>::compare(optional_vector->data(), modifyed.data(), optional_vector->size()), 0);
 
     //diversion::optional <boost::iterator_range<char const*>> orange = flyweight;
     //BOOST_CHECK_EQUAL(!orange, false);
@@ -223,7 +224,7 @@ BOOST_AUTO_TEST_CASE(CharArrayFlyweightTest)
 
     flyweight = diversion::optional<std::string>{ "modifyed" };
     BOOST_CHECK_EQUAL(flyweight.size(), modifyed.size());
-    std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size());
+    BOOST_CHECK_EQUAL(std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size()), 0);
     
     auto modifyed1 = std::vector<char>{ 'm','o','d','i','f','y','e','d','-','1' };
     flyweight = modifyed1;
@@ -288,11 +289,11 @@ BOOST_AUTO_TEST_CASE(ConstCharVarArrayFlyweightTest)
     BOOST_CHECK_EQUAL(!flyweight, false);
     BOOST_CHECK(!flyweight.is_null());
     BOOST_CHECK_EQUAL(flyweight.size(), size);
-    std::string str = flyweight;
+    auto str = odbcx::details::cast<std::string>(flyweight);
     BOOST_CHECK_EQUAL(str, x);
     //diversion::string_view view = flyweight;
     //BOOST_CHECK_EQUAL(view, x);
-    std::vector<char> vector = flyweight;
+    auto vector = odbcx::details::cast<std::vector<char>>(flyweight);
     BOOST_CHECK_EQUAL_COLLECTIONS(begin(vector), end(vector), begin(x), end(x));
     //boost::iterator_range<char const*> range = flyweight;
     //BOOST_CHECK_EQUAL_COLLECTIONS(range.begin(), range.end(), begin(x), end(x));
@@ -311,11 +312,11 @@ BOOST_AUTO_TEST_CASE(CharVarArrayFlyweightTest)
     BOOST_CHECK(!flyweight.is_null());
     BOOST_CHECK_EQUAL(flyweight.size(), size);
 
-    std::string str = flyweight;
+    auto str = odbcx::details::cast<std::string>(flyweight);
     BOOST_CHECK_EQUAL(str, x);
     //diversion::string_view view = flyweight;
     //BOOST_CHECK_EQUAL(view, x);
-    std::vector<char> vector = flyweight;
+    auto vector = odbcx::details::cast<std::vector<char>>(flyweight);
     BOOST_CHECK_EQUAL_COLLECTIONS(begin(vector), end(vector), begin(x), end(x));
     //boost::iterator_range<char const*> range = flyweight;
     //BOOST_CHECK(!range.empty());
@@ -325,17 +326,17 @@ BOOST_AUTO_TEST_CASE(CharVarArrayFlyweightTest)
     auto modifyed = std::string{ "modifyed" };
     flyweight = modifyed;
     BOOST_CHECK_EQUAL(flyweight.size(), modifyed.size());
-    std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size());
+    BOOST_CHECK_EQUAL(std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size()),0);
 
-    diversion::optional<std::string> ostr = flyweight;
-    BOOST_CHECK_EQUAL(!ostr, false);
-    BOOST_CHECK_EQUAL((*ostr).size(), modifyed.size());
-    BOOST_CHECK_EQUAL(*ostr, modifyed);
+    auto optional_str = odbcx::details::cast<diversion::optional<std::string>>(flyweight);
+    BOOST_CHECK_EQUAL(!optional_str, false);
+    BOOST_CHECK_EQUAL(optional_str->size(), modifyed.size());
+    BOOST_CHECK_EQUAL(*optional_str, modifyed);
 
-    diversion::optional<std::vector<char>> ovec = flyweight;
-    BOOST_CHECK_EQUAL(!ovec, false);
-    BOOST_CHECK_EQUAL((*ovec).size(), modifyed.size());
-    BOOST_CHECK_EQUAL(std::char_traits<char>::compare((*ovec).data(), modifyed.data(), (*ovec).size()), 0);
+    auto optional_vector = odbcx::details::cast<diversion::optional<std::vector<char>>>(flyweight);
+    BOOST_CHECK_EQUAL(!optional_vector, false);
+    BOOST_CHECK_EQUAL(optional_vector->size(), modifyed.size());
+    BOOST_CHECK_EQUAL(std::char_traits<char>::compare(optional_vector->data(), modifyed.data(), optional_vector->size()), 0);
 
     //diversion::optional <boost::iterator_range<char const*>> orange = flyweight;
     //BOOST_CHECK_EQUAL(!orange, false);
@@ -351,7 +352,7 @@ BOOST_AUTO_TEST_CASE(CharVarArrayFlyweightTest)
 
     flyweight = diversion::optional<std::string>{ "modifyed" };
     BOOST_CHECK_EQUAL(flyweight.size(), modifyed.size());
-    std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size());
+    BOOST_CHECK_EQUAL(std::char_traits<char>::compare(modifyed.data(), layout.value, modifyed.size()),0);
 
     auto modifyed1 = std::vector<char>{ 'm','o','d','i','f','y','e','d','-','1' };
     flyweight = modifyed1;

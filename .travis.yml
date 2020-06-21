@@ -11,6 +11,7 @@ matrix:
       env: >
            COMPILER=g++-4.8 TOOLSET=gcc-4.8 CPPSTD=c++11
            BOOST_VER=1.68.0
+           TEST_CONFIGS=postgres
       addons:
         apt:
           update: true
@@ -61,6 +62,7 @@ matrix:
       env: >
            COMPILER=clang++-3.6 TOOLSET=clang CPPSTD=c++11
            BOOST_VER=1.68.0
+           TEST_CONFIGS=postgres
       addons:
         apt:
           update: true
@@ -89,6 +91,22 @@ matrix:
             - clang-6.0
             - llvm-6.0
             - odbc-postgresql
+    # - os: linux
+    #   dist: bionic
+    #   env: >
+    #        COMPILER=clang++-9 TOOLSET=clang CPPSTD=c++2a
+    #        BOOST_VER=1.70.0
+    #        TEST_CONFIGS=postgres
+    #        COVERAGE=ON
+    #   addons:
+    #     apt:
+    #       update: true
+    #       sources:
+    #         - ubuntu-toolchain-r-test
+    #       packages:
+    #         - clang-9
+    #         - llvm-9
+    #         - odbc-postgresql
 services:
   - postgresql
   - mysql
@@ -126,9 +144,9 @@ install:
     export BOOST_ROOT=${TRAVIS_BUILD_DIR}/boost_${BOOST_VER//./_}    
 before_script:
   - psql -h localhost -U postgres -c "CREATE DATABASE test;"
-  - |
-    mysql -e "CREATE DATABASE IF NOT EXISTS test;"
-    mysql -e "USE mysql;\nUPDATE user SET password=PASSWORD('Password12!') WHERE user='root';\nFLUSH PRIVILEGES;\n"
+  # - |
+  #   mysql -e "CREATE DATABASE IF NOT EXISTS test;"
+  #   mysql -e "USE mysql;\nUPDATE user SET password=PASSWORD('Password12!') WHERE user='root';\nFLUSH PRIVILEGES;\n"
   - |
     if [[ "${COVERAGE}" == "ON" ]]; then
       export B2FLAGS="${B2FLAGS} cxxflags=\"-fprofile-instr-generate\" cxxflags=\"-fcoverage-mapping\" linkflags=\"-fprofile-instr-generate\""

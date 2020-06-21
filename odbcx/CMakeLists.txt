@@ -16,11 +16,13 @@ add_library (odbcx
         utility.cpp
         details/attribute.hpp
         details/bookmark.hpp
+        details/cast.hpp
         details/cursor.hpp
 		details/diversion.hpp
         details/handle.hpp   
         details/iterator.hpp
         details/query.hpp
+        bindings/adapter.hpp
         bindings/ttraits.hpp
         bindings/in.hpp
         bindings/columns.hpp

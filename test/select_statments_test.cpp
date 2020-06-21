@@ -1,8 +1,8 @@
 #include "test.hpp"
 #include "dd.hpp"
 #include "odbcx/query.hpp"
-#include <boost/test/unit_test.hpp>
 #include <boost/format.hpp>
+#include <boost/test/unit_test.hpp>
 #include <boost/mp11/list.hpp>
 #include <iterator>
 #include <string>
