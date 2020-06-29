@@ -1,5 +1,6 @@
 #include "connections.hpp"
 //#include <boost/spirit/home/x3.hpp>
+#include <boost/config/warning_disable.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <boost/program_options.hpp>
 #include <boost/filesystem.hpp>
@@ -9,9 +10,6 @@
 #include <iostream>
 #include <algorithm>
 #include <stdexcept>
-
-
-
 
 //namespace x3 = boost::spirit::x3;
 namespace qi = boost::spirit::qi;
@@ -133,6 +131,7 @@ std::vector<test::Connection> init_connections()
 					add
 						("msodbc", test::OdbcDriverType::mssql)
 						("libmsodbc", test::OdbcDriverType::mssql)
+						("sqlncli", test::OdbcDriverType::mssql)
 						("SQORA", test::OdbcDriverType::oracle)
 						("PSQL", test::OdbcDriverType::psql)
 						("psql", test::OdbcDriverType::psql)

@@ -4,6 +4,7 @@
 
 #include "utility.hpp"
 #include "details/handle.hpp"
+#include <stdexcept>
 
 namespace odbcx { inline namespace v1 { namespace handle {
 

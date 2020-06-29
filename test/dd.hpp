@@ -119,7 +119,7 @@ struct TestNoDataOptional
 //    diversion::optional<std::chrono::system_clock::time_point> ts;
     diversion::optional<std::string> type;
     diversion::optional<std::vector<char>> target;
-    diversion::optional<float> sum;
+    diversion::optional<double> sum;
     diversion::optional<int> value;
 };
 

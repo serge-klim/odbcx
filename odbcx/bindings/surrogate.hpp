@@ -1,10 +1,10 @@
 // Copyright (c) 2018-2019 Serge Klimov serge.klim@outlook.com
 
 #pragma once
-#include "odbcx/utility.hpp"
 #include "ttraits.hpp"
+#include "odbcx/handle.hpp"
+//#include "odbcx/details/cast.hpp"
 #include "odbcx/details/diversion.hpp"
-#include <boost/range/iterator_range.hpp>
 #include <vector>
 #include <string>
 #include <iterator>
@@ -29,8 +29,7 @@ public:
 
     /*explicit*/ constexpr bool operator!() const noexcept { return is_null(); }
     constexpr bool is_null() const noexcept { return indicator_ == SQL_NULL_DATA; }
-    constexpr operator T const& () const noexcept { return value_; }
-    constexpr operator diversion::optional<T>() const noexcept { return is_null() ? diversion::nullopt : diversion::make_optional(value_); }
+    constexpr T const& value() const noexcept { return value_; }
 private:
     SQLLEN indicator_ = 0;
     T value_ = {};
@@ -53,22 +52,8 @@ public:
     /*explicit*/ constexpr bool operator!() const noexcept { return is_null(); }
     constexpr bool is_null() const noexcept { return indicator_ == SQL_NULL_DATA; }
     constexpr value_type const* value() const noexcept { return value_; }
-    constexpr operator value_type const* () const noexcept { return value(); }
     constexpr std::size_t size() const noexcept { return is_null() ? 0 : std::size_t(indicator_ / sizeof(T)); }
     constexpr std::size_t capacity() const noexcept { return N; }
-
-    operator std::vector<value_type>() const { return { value(), value() + size() }; }
-    operator std::basic_string<value_type>() const { return { value(), value() + size() }; }
-    operator diversion::basic_string_view<value_type>() const { return { value(), size() }; }
-    operator boost::iterator_range<value_type const*>() const { return { value(), value() + size() }; }
-
-    operator diversion::optional<std::vector<value_type>>() const { return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<std::vector<value_type>>(*this)); }
-    operator diversion::optional<std::basic_string<value_type>>() const { return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<std::basic_string<value_type>>(*this)); }
-    operator diversion::optional<diversion::basic_string_view<value_type>>() const { return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<diversion::basic_string_view<value_type>>(*this)); }
-    operator diversion::optional< boost::iterator_range<typename std::vector<value_type>::const_iterator>>() const
-    {
-        return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<boost::iterator_range<typename std::vector<value_type>::const_iterator>>(*this));
-    }
 private:
     SQLLEN indicator_ = 0;
     value_type value_[N];
@@ -131,25 +116,8 @@ public:
     /*explicit*/ constexpr bool operator!() const noexcept { return is_null(); }
     constexpr bool is_null() const noexcept { return indicator_ == SQL_NULL_DATA; }
     /*constexpr*/ std::size_t size() const noexcept { return is_null() ? 0 : value_.size(); }
-
-    constexpr operator std::vector<T> const& () const& noexcept { return value_; }
-#if !defined(BOOST_GCC_VERSION) || BOOST_GCC_VERSION > 50000
-    operator std::vector<value_type>() const&& noexcept { return std::move(value_); }
-#endif
-    operator diversion::optional<std::vector<value_type>>() const& { return is_null() ? diversion::nullopt : diversion::make_optional(value_); }
-    operator diversion::optional<std::vector<value_type>>()&& { return is_null() ? diversion::nullopt : diversion::make_optional(std::move(value_)); }
-
-    operator std::basic_string<value_type>() const { return { value_.data(), value_ .size() }; }
-    operator diversion::basic_string_view<value_type>() const { return { value_.data(), value_.size() }; }
-    operator boost::iterator_range<typename std::vector<value_type>::const_iterator>() const { return { std::begin(value_), std::end(value_) }; }
-
-
-    operator diversion::optional<std::basic_string<value_type>>() const { return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<std::basic_string<value_type>>(*this)); }
-    operator diversion::optional<diversion::basic_string_view<value_type>>() const { return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<diversion::basic_string_view<value_type>>(*this)); }
-    operator diversion::optional< boost::iterator_range<typename std::vector<value_type>::const_iterator>>() const
-    { 
-        return is_null() ? diversion::nullopt : diversion::make_optional(static_cast<boost::iterator_range<typename std::vector<value_type>::const_iterator>>(*this));
-    }
+    constexpr std::vector<T> const& value() const& noexcept { return value_; }
+    std::vector<value_type>&& value() && noexcept { return std::move(value_); }
 private:
     SQLLEN indicator_ = 0;
     std::vector<value_type> value_;
@@ -164,5 +132,99 @@ void copy2array(T(&dest)[N], Surrogate<T[N], SqlType, Size> const& src)
     std::memset(dest + size, 0, (N - size) * sizeof(T));
 }
 
+namespace details{
+
+template<typename T, SQLSMALLINT SqlType, SQLLEN Size>
+T const& cast(Surrogate<T, SqlType, Size> const& src, boost::mp11::mp_identity<T>)
+{
+    return src.value();
+}
+
+template<typename T, SQLSMALLINT SqlType, SQLLEN Size>
+T cast(Surrogate<T, SqlType, Size>&& src, boost::mp11::mp_identity<T>)
+{
+    return src.value();
+}
+
+template<typename T, SQLSMALLINT SqlType, SQLLEN Size>
+diversion::optional<T> cast(Surrogate<T, SqlType, Size>&& src, boost::mp11::mp_identity<diversion::optional<T>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(src.value());
+}
+template<typename T, std::size_t N, SQLSMALLINT SqlType, SQLLEN Size>
+std::vector<T> cast(Surrogate<T[N], SqlType, Size>&& src, boost::mp11::mp_identity<std::vector<T>>)
+{
+    return { src.value(), src.value() + src.size() };
+}
+
+template<typename T, std::size_t N, SQLSMALLINT SqlType, SQLLEN Size>
+std::basic_string<T> cast(Surrogate<T[N], SqlType, Size>&& src, boost::mp11::mp_identity<std::basic_string<T>>)
+{
+    return { src.value(), src.value() + src.size() };
+}
+
+template<typename T, std::size_t N, SQLSMALLINT SqlType, SQLLEN Size>
+diversion::basic_string_view<T> cast(Surrogate<T[N], SqlType, Size>&& src, boost::mp11::mp_identity<diversion::basic_string_view<T>>)
+{
+    return { src.value(), src.size() };
+}
+
+template<typename T, std::size_t N, SQLSMALLINT SqlType, SQLLEN Size>
+diversion::optional<std::vector<T>> cast(Surrogate<T[N], SqlType, Size>&& src, boost::mp11::mp_identity< diversion::optional<std::vector<T>>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(cast(std::forward<Surrogate<T[N], SqlType, Size>>(src), boost::mp11::mp_identity<std::vector<T>>{}));
+}
+
+template<typename T, std::size_t N, SQLSMALLINT SqlType, SQLLEN Size>
+diversion::optional<std::basic_string<T>> cast(Surrogate<T[N], SqlType, Size>&& src, boost::mp11::mp_identity<diversion::optional<std::basic_string<T>>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(cast(std::forward<Surrogate<T[N], SqlType, Size>>(src), boost::mp11::mp_identity<std::basic_string<T>>{}));
+}
+
+template<typename T, std::size_t N, SQLSMALLINT SqlType, SQLLEN Size>
+diversion::optional<diversion::basic_string_view<T>> cast(Surrogate<T[N], SqlType, Size>&& src, boost::mp11::mp_identity<diversion::optional<diversion::basic_string_view<T>>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(cast(std::forward<Surrogate<T[N], SqlType, Size>>(src), boost::mp11::mp_identity<diversion::basic_string_view<T>>{}));
+}
+
+template<typename T, SQLSMALLINT SqlType>
+std::vector<T> cast(SurrogateVector<T, SqlType>&& src, boost::mp11::mp_identity<std::vector<T>>) 
+{ 
+    return std::move(src).value();
+}
+
+template<typename T, SQLSMALLINT SqlType>
+diversion::optional<std::vector<T>> cast(SurrogateVector<T, SqlType>&& src, boost::mp11::mp_identity<diversion::optional<std::vector<T>>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(std::move(src).value());
+}
+
+template<typename T, SQLSMALLINT SqlType>
+std::basic_string<T> cast(SurrogateVector<T, SqlType>&& src, boost::mp11::mp_identity<std::basic_string<T>>)
+{
+    auto const& value = src.value();
+    return { value.data(), value.size() };
+}
+
+template<typename T, SQLSMALLINT SqlType>
+diversion::basic_string_view<T> cast(SurrogateVector<T, SqlType>&& src, boost::mp11::mp_identity<diversion::basic_string_view<T>>)
+{
+    auto const& value = src.value();
+    return { value.data(), value.size() };
+}
+
+template<typename T, SQLSMALLINT SqlType>
+diversion::optional<std::basic_string<T>> cast(SurrogateVector<T, SqlType>&& src, boost::mp11::mp_identity<diversion::optional<std::basic_string<T>>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(cast(std::forward<SurrogateVector<T, SqlType>>(src), boost::mp11::mp_identity<std::basic_string<T>>{}));
+}
+
+template<typename T, SQLSMALLINT SqlType>
+diversion::optional<diversion::basic_string_view<T>> cast(SurrogateVector<T, SqlType>&& src, boost::mp11::mp_identity<diversion::optional<diversion::basic_string_view<T>>>)
+{
+    return src.is_null() ? diversion::nullopt : diversion::make_optional(cast(std::forward<SurrogateVector<T, SqlType>>(src), boost::mp11::mp_identity<diversion::basic_string_view<T>>{}));
+}
+
+} /*namespace details*/
 
 }/*inline namespace v1*/} //namespace odbcx

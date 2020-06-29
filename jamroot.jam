@@ -7,6 +7,7 @@ project dbtest
 	<define>BOOST_ALL_NO_LIB=1
 	<define>BOOST_TEST_NO_AUTO_LINK=1
    	<toolset>msvc:<define>_SCL_SECURE_NO_WARNINGS
+   	<toolset>msvc:<define>_CRT_SECURE_NO_WARNINGS
     <toolset>msvc:<define>_ENABLE_ATOMIC_ALIGNMENT_FIX
     <toolset>gcc:<cxxflags>-ftemplate-depth=256
 	# <toolset>msvc:<linkflags>-verbose

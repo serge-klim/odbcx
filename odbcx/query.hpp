@@ -2,10 +2,9 @@
 
 #pragma once
 
-#include "odbcx/details/query.hpp"
 #include "odbcx/cursor.hpp"
-#include "odbcx/bindings/in.hpp"
 #include "odbcx/attribute.hpp"
+#include "odbcx/details/query.hpp"
 #include "odbcx/details/diversion.hpp"
 #include <boost/fusion/include/accumulate.hpp>
 #include <boost/fusion/include/is_sequence.hpp>

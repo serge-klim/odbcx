@@ -2,9 +2,8 @@
 #include <odbcx/attribute.hpp>
 #include <odbcx/query.hpp>
 #include <odbcx/handle.hpp>
-#include <boost/test/unit_test.hpp>
 #include <boost/format.hpp>
-
+#include <boost/test/unit_test.hpp>
 
 void test::create_table(odbcx::handle::adapter::Dbc const& dbc, std::string const& table_name)
 {

@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
         // make sure that the test table is empty
         auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test");
-        assert(n.get() == 0);
+        assert(*n == 0);
 
         // let's insert some data
         auto type1 = std::string{ "type 1" };
@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
 
         //make sure that 3 recors has been inserted
         n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test");
-        assert(n.get() == 3);
+        assert(*n == 3);
 
         //lets fetch the data
         auto cursor = odbcx::query<std::tuple<int, SQL_TIMESTAMP_STRUCT, std::string, std::vector<std::uint8_t>> >(dbc, "SELECT id, ts, target, data FROM test where messagetype = ?", type1);

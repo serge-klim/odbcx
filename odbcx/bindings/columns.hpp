@@ -6,6 +6,7 @@
 #include "flyweight.hpp"
 #include "ttraits.hpp"
 #include "odbcx/handle.hpp"
+#include "odbcx/details/cast.hpp"
 #include "odbcx/details/bookmark.hpp"
 #include "odbcx/adapter.hpp"
 #include "odbcx/utility.hpp"
@@ -30,11 +31,7 @@
 #include <cstddef>
 #include <cassert>
 
-namespace odbcx { inline namespace v1 {
-
-namespace details { 
-
-namespace columns {
+namespace odbcx { inline namespace v1 { namespace details { namespace columns {
 
 template<typename T, typename Enabled = boost::mp11::mp_true> struct Bind;
 
@@ -597,9 +594,9 @@ private:
         {
             auto begin = row + member_offset<N>();
             auto end = row + member_offset<N+1>();
-            return DynamicBind<Type>{}.instantiate(begin, end);
+            return cast<Type>(DynamicBind<Type>{}.instantiate(begin, end));
         }
-        return DynamicBind<Type>{}.instantiate(stmt, SQLUSMALLINT(N + 1));
+        return cast<Type>(DynamicBind<Type>{}.instantiate(stmt, SQLUSMALLINT(N + 1)));
     }
 
     template<typename ...Args>
@@ -715,7 +712,7 @@ private:
 template<typename Sequence>
 struct NameGenerator
 {
-	NameGenerator(boost::string_view alias) : alias_{ std::move(alias) } {}
+	NameGenerator(diversion::string_view alias) : alias_{ std::move(alias) } {}
 
 	static_assert(boost::fusion::traits::is_sequence<Sequence>::value, "fusion sequence expected");
 	template<typename T>
@@ -729,7 +726,7 @@ struct NameGenerator
 		return res;
 	}
 private:
-	boost::string_view alias_;
+    diversion::string_view alias_;
 };
 
 }  /*namespace columns*/}  /*namespace details*/ }/*inline namespace v1*/} /*namespace odbcx*/

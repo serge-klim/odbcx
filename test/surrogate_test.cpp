@@ -39,26 +39,26 @@ BOOST_DATA_TEST_CASE(BasicSurrogateTest, boost::unit_test::data::make_delayed<te
     BOOST_CHECK_NE(odbcx::call(&SQLFetchScroll, stmt, SQL_FETCH_NEXT, 0), SQL_NO_DATA);
     BOOST_CHECK_EQUAL(fetched, 1);
     BOOST_CHECK_EQUAL(id, 1);
-    
-    std::string type = odbcx::SurrogateVector<char, SQL_C_CHAR>{stmt, 2};
+
+    auto type = odbcx::details::cast<std::string>(odbcx::SurrogateVector<char, SQL_C_CHAR>{stmt, 2});
     BOOST_CHECK_EQUAL(type, "type1");
     BOOST_CHECK_THROW((odbcx::SurrogateVector<char, SQL_C_CHAR>{stmt, 2}), std::runtime_error);
 
-    std::string target = odbcx::SurrogateVector<char, SQL_C_CHAR>{ stmt, 3 };
+    auto target = odbcx::details::cast<std::string>(odbcx::SurrogateVector<char, SQL_C_CHAR>{ stmt, 3 });
     BOOST_CHECK(target.empty());
     BOOST_CHECK_THROW((odbcx::SurrogateVector<char, SQL_C_CHAR>{stmt, 3}), std::runtime_error);
 
-    int value =  odbcx::Surrogate<int>{ stmt, 4 };
+    auto value = odbcx::details::cast<int>(odbcx::Surrogate<int>{ stmt, 4 });
     switch (driver_type)
     {
         case test::OdbcDriverType::psql:
         case test::OdbcDriverType::mysql:
-            BOOST_CHECK_EQUAL(static_cast<decltype(value)>(odbcx::Surrogate<int>{stmt, 4}), value); //pstgres allows to call it more than once
+            BOOST_CHECK_EQUAL(odbcx::details::cast<decltype(value)>(odbcx::Surrogate<int>{stmt, 4}), value); //pstgres allows to call it more than once
             break;
         default:
             BOOST_CHECK_THROW((odbcx::Surrogate<int>{stmt, 4}), std::runtime_error);
     }
-    diversion::optional<std::vector<std::uint8_t>> data = odbcx::SurrogateVector<std::uint8_t, SQL_C_BINARY>{ stmt, 5 };
+    auto data = odbcx::details::cast<diversion::optional<std::vector<std::uint8_t>>>(odbcx::SurrogateVector<std::uint8_t, SQL_C_BINARY>{ stmt, 5 });
     BOOST_CHECK(!data);
     switch (driver_type)
     {
@@ -88,12 +88,12 @@ BOOST_DATA_TEST_CASE(OptionalSurrogateTest, boost::unit_test::data::make_delayed
     BOOST_CHECK_EQUAL(fetched, 1);
     BOOST_CHECK_EQUAL(id, 1);
 
-    diversion::optional<std::string> type = odbcx::SurrogateVector<char, SQL_C_CHAR>{ stmt, 2 };
+    auto type = odbcx::details::cast<diversion::optional<std::string>>(odbcx::SurrogateVector<char, SQL_C_CHAR>{ stmt, 2 });
     BOOST_CHECK_EQUAL(!type, false);
-    BOOST_CHECK_EQUAL(type.get(), "type1");
+    BOOST_CHECK_EQUAL(*type, "type1");
     BOOST_CHECK_THROW((odbcx::SurrogateVector<char, SQL_C_CHAR>{stmt, 2}), std::runtime_error);
 
-    diversion::optional<std::string> target = odbcx::SurrogateVector<char, SQL_C_CHAR>{ stmt, 3 };
+    auto target = odbcx::details::cast<diversion::optional<std::string>>(odbcx::SurrogateVector<char, SQL_C_CHAR>{ stmt, 3 });
     switch (driver_type)
     {
         case test::OdbcDriverType::oracle:
@@ -101,22 +101,22 @@ BOOST_DATA_TEST_CASE(OptionalSurrogateTest, boost::unit_test::data::make_delayed
             break;
         default:
             BOOST_CHECK_EQUAL(!target, false);
-            BOOST_CHECK(target.get().empty());
+            BOOST_CHECK(target->empty());
     }
     BOOST_CHECK_THROW((odbcx::SurrogateVector<char, SQL_C_CHAR>{stmt, 3}), std::runtime_error);
 
-    int value = odbcx::Surrogate<int>{ stmt, 4 };
+    auto value = odbcx::details::cast<int>(odbcx::Surrogate<int>{ stmt, 4 });
     switch (driver_type)
     {
         case test::OdbcDriverType::psql:
         case test::OdbcDriverType::mysql:
-            BOOST_CHECK_EQUAL(static_cast<decltype(value)>(odbcx::Surrogate<int>{stmt, 4}), value); //pstgres allows to call it more than once
+            BOOST_CHECK_EQUAL(odbcx::details::cast<decltype(value)>(odbcx::Surrogate<int>{stmt, 4}), value); //pstgres allows to call it more than once
             break;
         default:
             BOOST_CHECK_THROW((odbcx::Surrogate<int>{stmt, 4}), std::runtime_error);
     }
 
-    diversion::optional<std::vector<std::uint8_t>> data = odbcx::SurrogateVector<std::uint8_t, SQL_C_BINARY>{ stmt, 5 };
+    auto data = odbcx::details::cast<diversion::optional<std::vector<std::uint8_t>>>(odbcx::SurrogateVector<std::uint8_t, SQL_C_BINARY>{ stmt, 5 });
     BOOST_CHECK(!data);
     switch (driver_type)
     {
