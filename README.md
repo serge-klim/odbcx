@@ -49,7 +49,7 @@ now let's clenup the test table to make sure that the rest of example will work:
 and make sure there is no records in the test table:
 ```
     auto n = odbcx::query_one<long>(dbc, "SELECT count(id) FROM test");
-	assert(n.get() == 0)
+    assert(n.get() == 0);
 ```
 `odbcx::query_one<long>` will generate binding for long, prepares statement, execute it and fetch result. It returns `std/boost::optional<long>`. 
 
@@ -68,7 +68,8 @@ for any arguments on top of connection handle and SQL `odbcx::query` will genera
 ```
     auto cursor = odbcx::query<std::tuple<int, SQL_TIMESTAMP_STRUCT, std::string, std::vector<std::uint8_t>>>
 	 								(dbc, "SELECT id, ts, target, pb FROM test where messagetype = ?", type1);
-    for (auto const& rec : cursor.fetch())
+    auto range = cursor.fetch();
+    for (auto const& rec : range)
     {
         auto const& id = std::get<int>(rec);
         auto const& ts = std::get<SQL_TIMESTAMP_STRUCT>(rec);
@@ -76,7 +77,7 @@ for any arguments on top of connection handle and SQL `odbcx::query` will genera
         auto const& blob = std::get<std::vector<std::uint8_t>>(rec);
     }
 ```
-`odbcx::fetch_range` will return `std::tuple<int, SQL_TIMESTAMP_STRUCT, std::string, std::vector<std::uint8_t>>` [boost::iterator_range](https://www.boost.org/doc/libs/1_67_0/libs/range/doc/html/range/reference/utilities/iterator_range.html)
+`cursor.fetch()` will return `std::tuple<int, SQL_TIMESTAMP_STRUCT, std::string, std::vector<std::uint8_t>>` [boost::iterator_range](https://www.boost.org/doc/libs/1_67_0/libs/range/doc/html/range/reference/utilities/iterator_range.html)
 
 
 
@@ -114,8 +115,8 @@ Now l'ets query the table:
 
 And iterate through result:
 ```
-   auto range = fetch_range(statement)
-   for (auto const& rec : cursor.fetch())
+   auto range = cursor.fetch();
+   for (auto const& rec : range)
    {
 	   //...
    }

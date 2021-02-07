@@ -2,7 +2,7 @@ using testing ;
 
 project tests ;
 
-alias odbc :
+alias odbcx :
 			/odbcx//odbcx/<link>static
 			/user-config//odbc
 ;
@@ -25,8 +25,8 @@ unit-test test :
 		/boost//program_options/<link>static
         /boost//system/<link>static
 		/boost//filesystem/<link>static
-		odbc
+		odbcx
     ;
 
-# compile-fail fail_set_attr_test.cpp  odbc ;
-# #compile-fail fail_select_stmt1_test.cpp odbc ;
+# compile-fail fail_set_attr_test.cpp  odbcx ;
+# #compile-fail fail_select_stmt1_test.cpp odbcx ;
